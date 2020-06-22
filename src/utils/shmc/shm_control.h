@@ -23,9 +23,7 @@ namespace ShmControl {
 
 void initialize();
 
-void sendNNDataToRndis(void* nnReply);
-
-void pushUserHandler(void *handler, int type, void *buffer, int size);
+void sendNNDataByRndis(void* nnDataBuffer);
 
 } // namespace rndis_server
 

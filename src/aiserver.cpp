@@ -65,7 +65,7 @@ RT_RET nn_data_call_back(RTMediaBuffer *buffer) {
     RTRknnAnalysisResults *nnReply = NULL;
     buffer->getMetaData()->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
     if (RT_NULL != nnReply) {
-        ShmControl::sendNNDataToRndis((void*)nnReply);
+        ShmControl::sendNNDataByRndis((void*)nnReply);
     }
     buffer->release();
     return RT_OK;
