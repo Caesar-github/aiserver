@@ -35,19 +35,24 @@
 #define USE_ROCKIT 1
 
 typedef struct _AIServerCtx {
+    // minilog flags
     int  mFlagMinilog;
     int  mFlagMinilogBacktrace;
     int  mFlagMinilogLevel;
     int  mFlagEncoderDebug;
+    // dbus flags
+    int  mFlagDBusServer;
+    int  mFlagDBusDbServer;
+    int  mFlagDBusConn;
+    // task graph
     int  mTaskMode;
+    // server flags
     bool mQuit;
-    bool mNeedDbus;
-    bool mNeedDbserver;
-    bool mSessionBus;
-    std::string mJsonUri;
+    std::string mConfigUri;
 } AIServerCtx;
 
 static AIServerCtx _ai_server_ctx;
+static void        parse_args(int argc, char **argv);
 
 namespace rockchip {
 namespace aiserver {
@@ -62,11 +67,11 @@ void AIServer::setupTaskGraph() {
     mAIDirector.reset(new AISceneDirector());
     mGraphListener.reset(new RTAIGraphListener(mAIDirector.get()));
 
-    // RT_LOGD("AIServer: ctx.mNeedDbus     = %d", _ai_server_ctx.mNeedDbus);
-    // RT_LOGD("AIServer: ctx.mNeedDbserver = %d", _ai_server_ctx.mNeedDbserver);
-    // RT_LOGD("AIServer: ctx.mTaskMode     = %d", _ai_server_ctx.mTaskMode);
-    if (_ai_server_ctx.mNeedDbus) {
-        mDbusServer.reset(new DBusServer(_ai_server_ctx.mSessionBus, _ai_server_ctx.mNeedDbserver));
+    // RT_LOGD("AIServer: ctx.mFlagDBusServer   = %d", _ai_server_ctx.mFlagDBusServer);
+    // RT_LOGD("AIServer: ctx.mFlagDBusDbServer = %d", _ai_server_ctx.mFlagDBusDbServer);
+    // RT_LOGD("AIServer: ctx.mTaskMode         = %d", _ai_server_ctx.mTaskMode);
+    if (_ai_server_ctx.mFlagDBusServer) {
+        mDbusServer.reset(new DBusServer(_ai_server_ctx.mFlagDBusConn, _ai_server_ctx.mFlagDBusDbServer));
         assert(mDbusServer);
         mDbusServer->RegisterMediaControl(mGraphListener.get());
         mDbusServer->start();
@@ -85,7 +90,7 @@ void AIServer::setupTaskGraph() {
 }
 
 AIServer::~AIServer() {
-    if ((_ai_server_ctx.mNeedDbus) && (nullptr != mDbusServer)) {
+    if ((_ai_server_ctx.mFlagDBusServer) && (nullptr != mDbusServer)) {
         mDbusServer->stop();
     }
     mGraphListener.reset();
@@ -108,7 +113,9 @@ static void sigterm_handler(int sig) {
 using namespace rockchip::aiserver;
 
 int main(int argc, char *argv[]) {
-    // parse_args(argc, argv);
+    parse_args(argc, argv);
+    __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, \
+                       argv[0], "1.0.0");
 
     // install signal handlers.
 #if USE_ROCKIT
@@ -118,11 +125,11 @@ int main(int argc, char *argv[]) {
     // signal(SIGXCPU, sigterm_handler);
     // signal(SIGPIPE, SIG_IGN);
 
-    _ai_server_ctx.mQuit         = false;
-    _ai_server_ctx.mNeedDbus     = true;
-    _ai_server_ctx.mNeedDbserver = false;
-    _ai_server_ctx.mSessionBus   = false;
-    _ai_server_ctx.mTaskMode     = ROCKX_TASK_MODE_SINGLE;
+    _ai_server_ctx.mQuit             = false;
+    _ai_server_ctx.mFlagDBusServer   = true;
+    _ai_server_ctx.mFlagDBusDbServer = false;
+    _ai_server_ctx.mFlagDBusConn     = false;
+    _ai_server_ctx.mTaskMode         = ROCKX_TASK_MODE_SINGLE;
 #endif
 
     // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, argv[0], "1.0.0");
@@ -132,5 +139,62 @@ int main(int argc, char *argv[]) {
     aiserver.reset();
 
     return 0;
+}
+
+static void usage_tip(FILE *fp, int argc, char **argv) {
+  fprintf(fp, "Usage: %s [options]\n"
+              "Version %s\n"
+              "Options:\n"
+              "-c | --config      AIServer confg file \n"
+              "-m | --mode        0:single,  1:complex \n"
+              "-o | --dbus_conn   0:system,  1:session \n"
+              "-d | --dbus_db     0:disable, 1:enable \n"
+              "-s | --dbus_server 0:disable, 1:enable \n"
+              "-h | --help        For help \n"
+              "\n",
+          argv[0], "V1.1");
+}
+
+static const char short_options[] = "c:modsh";
+static const struct option long_options[] = {
+    {"ai_config",   required_argument, NULL, 'c'},
+    {"ai_mode",     optional_argument, 0,    'm'},
+    {"dbus_conn",   optional_argument, 0,    'o'},
+    {"dbus_db",     optional_argument, 0,    'd'},
+    {"dbus_server", optional_argument, 0,    's'},
+    {"help",        no_argument,       0,    'h'},
+    {0, 0, 0, 0}
+};
+
+static void parse_args(int argc, char **argv) {
+    int opt;
+    int idx;
+    while ((opt = getopt_long(argc, argv, short_options, long_options, &idx))!= -1) {
+      switch (opt) {
+        case 0: /* getopt_long() flag */
+          break;
+        case 'c':
+          _ai_server_ctx.mConfigUri = optarg;
+          break;
+        case 'm':
+          _ai_server_ctx.mTaskMode  = atoi(argv[optind]);
+          break;
+        case 'o':
+          _ai_server_ctx.mFlagDBusConn  = atoi(argv[optind]);
+          break;
+        case 'd':
+          _ai_server_ctx.mFlagDBusDbServer = atoi(argv[optind]);
+          break;
+        case 's':
+          _ai_server_ctx.mFlagDBusServer = atoi(argv[optind]);
+          break;
+        case 'h':
+          usage_tip(stdout, argc, argv);
+          exit(EXIT_SUCCESS);
+        default:
+          usage_tip(stderr, argc, argv);
+          exit(EXIT_FAILURE);
+      }
+    }
 }
 
