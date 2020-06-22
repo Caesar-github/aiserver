@@ -46,7 +46,7 @@ set(AISERVER_LIB
     dbus_cpp::dbus_cpp
     ${CMAKE_THREAD_LIBS_INIT})
 
-set(AI_SERVER_SRC aiserver.cpp)
+set(AI_SERVER_SRC aiserver.cpp ai_scene_director.cpp)
 aux_source_directory(utils/thread AI_SERVER_SRC)
 aux_source_directory(task_graph   AI_SERVER_SRC)
 aux_source_directory(dbus         AI_SERVER_SRC)

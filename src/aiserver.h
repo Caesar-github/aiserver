@@ -16,55 +16,28 @@
 
 #include <memory>
 
-#include "dbus_server.h"
+#include "ai_scene_director.h"
 #include "server.h"
 #include "thread.h"
-#include "dbus_graph_control.h"
-#include "rockit/RTTaskGraph.h"
+#include "dbus_server.h"
+
 
 namespace rockchip {
 namespace aiserver {
 
-class RTAICameraGraph {
+class AIServer {
  public:
-    RTAICameraGraph();
-    virtual ~RTAICameraGraph();
-    void start();
-    void prepare();
+    AIServer();
+    virtual ~AIServer();
 
+ public:
+    void setupTaskGraph();
     void waitUntilDone();
 
-    
-    void enableFaceDetect(int32_t enable);
-    void enableFaceLandmark(int32_t enable);
-    void enablePoseBody(int32_t enable);
-
  private:
-    RTTaskGraph *mGraph;
-};
-
-class RTAIGraphListener : public RTGraphListener {
- public:
-    RTAIGraphListener(RTAICameraGraph *graph) { mGraph = graph; }
-    virtual ~RTAIGraphListener() {}
-    virtual void CtrlSubGraph(const char* nnName, int32_t enable);
- private:
-    RTAICameraGraph *mGraph;
-    int32_t mFaceDetectEnabled = 0;
-    int32_t mFaceLandmarkEnabled = 0;
-    int32_t mPoseBodyEnabled = 0;
-};
-
-class AIServer {
-public:
-  AIServer();
-  virtual ~AIServer();
-
-  void waitUntilDone();
-private:
-  std::unique_ptr<DBusServer> mDbusServer;
-  RTAICameraGraph *mGraph;
-  RTGraphListener *mGraphListener;
+    std::unique_ptr<DBusServer>      mDbusServer;
+    std::unique_ptr<AISceneDirector> mAIDirector;
+    std::unique_ptr<RTGraphListener> mGraphListener;
 };
 
 } // namespace aiserver
