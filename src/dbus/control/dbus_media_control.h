@@ -11,31 +11,24 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "easymedia/buffer.h"
-#include "easymedia/encoder.h"
-#include "easymedia/flow.h"
-#include "easymedia/key_string.h"
-#include "easymedia/media_config.h"
-#include "easymedia/media_type.h"
-#include "easymedia/utils.h"
-
-#include "dbus_camera_control.h"
 #include "dbus_dispatcher.h"
+#include "dbus_camera_control.h"
 #include "dbus_encoder_control.h"
+#include "dbus_graph_control.h"
 
 namespace rockchip {
 namespace aiserver {
 
-class FlowUnit;
 class DBusMediaControl {
-public:
-  DBusMediaControl(){};
-  virtual ~DBusMediaControl() {}
-  int ConnectDBusServer(DBus::Connection &connection);
+ public:
+    DBusMediaControl(){};
+    virtual ~DBusMediaControl() {}
+    int listenMediaCtrl(DBus::Connection &connection, RTGraphListener* listener);
 
 private:
-  std::shared_ptr<DBusEncoderControl> encoder_controls_;
-  std::shared_ptr<DBusCameraControl> camera_controls_;
+   std::shared_ptr<DBusEncoderControl> encoder_controls_;
+   std::shared_ptr<DBusCameraControl> camera_controls_;
+   std::shared_ptr<DBusGraphControl> graph_controls_;
 };
 
 } // namespace aiserver

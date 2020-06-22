@@ -65,4 +65,19 @@
 
   </interface>
 
+  <interface name="rockchip.aiserver.control.graph">
+
+    <method name="SetGraphStatus">
+      <arg name="param" type="s" direction="in"/>
+      <arg name="id" type="i" direction="in"/>
+      <arg name="result" type="i" direction="out"/>
+    </method>
+
+    <method name="SetRockxStatus">
+      <arg name="param" type="s" direction="in"/>
+      <arg name="result" type="i" direction="out"/>
+    </method>
+
+  </interface>
+
 </node>

@@ -16,101 +16,95 @@ namespace rockchip {
 namespace aiserver {
 
 DBusServer::DBusServer(bool session, bool need_dbserver)
-    : session_(session), need_dbserver_(need_dbserver) {
-  LOG_DEBUG("dbus server setup\n");
+      : session_(session), need_dbserver_(need_dbserver) {
+    LOG_DEBUG("dbus server setup\n");
 
-#ifdef USE_RKMEDIA
-  flow_manager_ = FlowManager::GetInstance();
-  media_control_.reset(new DBusMediaControl());
-#endif
+    media_control_.reset(new DBusMediaControl());
 
-  RegisteredDBusAdaptor();
+    RegisteredDBusAdaptor();
 }
 
 DBusServer::~DBusServer() {
-#ifdef USE_RKMEDIA
-  UnRegisteredDBusAdaptor();
-  media_control_.reset(nullptr);
-#endif
+    UnRegisteredDBusAdaptor();
+    media_control_.reset(nullptr);
 }
 
 static void *ServerProcess(void *arg) {
-  char thread_name[40];
-  snprintf(thread_name, sizeof(thread_name), "DBusServer");
-  prctl(PR_SET_NAME, thread_name);
-  DBus::default_dispatcher->enter();
-  return nullptr;
+    char thread_name[40];
+    snprintf(thread_name, sizeof(thread_name), "DBusServer");
+    prctl(PR_SET_NAME, thread_name);
+    DBus::default_dispatcher->enter();
+    return nullptr;
 }
 
 void DBusServer::start(void) {
-  LOG_DEBUG("dbus server start\n");
-  service_thread_.reset(new Thread(ServerProcess, this));
-  service_thread_->set_status(kThreadRunning);
+    LOG_DEBUG("dbus server start\n");
+    service_thread_.reset(new Thread(ServerProcess, this));
+    service_thread_->set_status(kThreadRunning);
 }
 
 void DBusServer::stop(void) {
-  DBus::default_dispatcher->leave();
-  service_thread_->set_status(kThreadStopping);
-  service_thread_->join();
-  LOG_DEBUG("dbus server stop\n");
+    DBus::default_dispatcher->leave();
+    service_thread_->set_status(kThreadStopping);
+    service_thread_->join();
+    LOG_DEBUG("dbus server stop\n");
 }
 
 ThreadStatus DBusServer::status(void) {
-  if (service_thread_)
-    return service_thread_->status();
-  else
-    return kThreadRunning;
+    if (service_thread_)
+      return service_thread_->status();
+    else
+      return kThreadRunning;
 }
 
 int DBusServer::RegisteredDBusAdaptor() {
-  DbusDispatcher(100);
-  DBus::Connection conn =
-      session_ ? DBus::Connection::SessionBus() : DBus::Connection::SystemBus();
-  conn.request_name(MEDIA_CONTROL_BUS_NAME);
+    DbusDispatcher(100);
+    DBus::Connection conn =
+        session_ ? DBus::Connection::SessionBus() : DBus::Connection::SystemBus();
+    conn.request_name(MEDIA_CONTROL_BUS_NAME);
+  
 
-#ifdef USE_RKMEDIA
-  media_control_->ConnectDBusServer(conn);
-#endif
-
-  if (need_dbserver_) {
-    dbserver_proxy_ =
-        std::make_shared<DBusDbServer>(conn, DBSERVE_PATH, DBSERVE_BUS_NAME);
-    dbserver_listen_.reset(new DBusDbListen(conn));
-    dbevent_proxy_ =
-        std::make_shared<DBusDbEvent>(conn, DBSERVE_PATH, DBSERVE_BUS_NAME);
-    dbevent_listen_.reset(new DBusDbEventListen(conn));
-    strorage_proxy_ = std::make_shared<DBusStorageManager>(
-        conn, STORAGE_MANAGER_PATH, STORAGE_MANAGER_BUS_NAME);
-    strorage_listen_.reset(new DBusStorageManagerListen(conn));
-  }
-  return 0;
+    media_control_->listenMediaCtrl(conn, NULL);
+  
+    if (need_dbserver_) {
+      dbserver_proxy_ =
+          std::make_shared<DBusDbServer>(conn, DBSERVER_PATH, DBSERVER_BUS_NAME);
+      dbserver_listen_.reset(new DBusDbListener(conn));
+      dbevent_proxy_ =
+          std::make_shared<DBusDbEvent>(conn, DBSERVER_PATH, DBSERVER_BUS_NAME);
+      dbevent_listen_.reset(new DBusDbEventListener(conn));
+      strorage_proxy_ = std::make_shared<DBusStorageManager>(
+          conn, STORAGE_MANAGER_PATH, STORAGE_MANAGER_BUS_NAME);
+      strorage_listen_.reset(new DBusStorageManagerListen(conn));
+    }
+    return 0;
 }
 
 int DBusServer::UnRegisteredDBusAdaptor() {
-  if (need_dbserver_) {
-    if (strorage_listen_) {
-      strorage_listen_.reset(nullptr);
+    if (need_dbserver_) {
+        if (strorage_listen_) {
+            strorage_listen_.reset(nullptr);
+        }
+        if (strorage_proxy_) {
+            strorage_proxy_.reset();
+            strorage_proxy_ = nullptr;
+        }
+        if (dbevent_listen_) {
+            dbevent_listen_.reset(nullptr);
+        }
+        if (dbserver_listen_) {
+            dbserver_listen_.reset(nullptr);
+        }
+        if (dbevent_proxy_) {
+            dbevent_proxy_.reset();
+            dbevent_proxy_ = nullptr;
+        }
+        if (dbserver_proxy_) {
+            dbserver_proxy_.reset();
+            dbserver_proxy_ = nullptr;
+        }
     }
-    if (strorage_proxy_) {
-      strorage_proxy_.reset();
-      strorage_proxy_ = nullptr;
-    }
-    if (dbevent_listen_) {
-      dbevent_listen_.reset(nullptr);
-    }
-    if (dbserver_listen_) {
-      dbserver_listen_.reset(nullptr);
-    }
-    if (dbevent_proxy_) {
-      dbevent_proxy_.reset();
-      dbevent_proxy_ = nullptr;
-    }
-    if (dbserver_proxy_) {
-      dbserver_proxy_.reset();
-      dbserver_proxy_ = nullptr;
-    }
-  }
-  return 0;
+    return 0;
 }
 
 } // namespace aiserver

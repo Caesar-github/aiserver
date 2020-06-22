@@ -21,7 +21,7 @@
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
-#define LOG_TAG "dbus_dbserver.cpp"
+#define LOG_TAG "dbus_dbserver"
 
 namespace rockchip {
 namespace aiserver {
@@ -33,7 +33,7 @@ DBusDbServer::DBusDbServer(DBus::Connection &connection,
 DBusDbServer::~DBusDbServer() {}
 
 void DBusDbServer::DataChanged(const std::string &param) {
-  // NO NEED TODO
+    // NO NEED TODO
 }
 
 std::string DBusDbServer::SelectVideoDb(int id) {
@@ -60,19 +60,19 @@ std::string DBusDbServer::SelectRoiDb(int region_id) {
   return Cmd(tmp);
 }
 
-DBusDbListen::DBusDbListen(DBus::Connection &connection)
-    : DBus::InterfaceProxy(DBSERVE_DBCHANGE_INTERFACE),
-      DBus::ObjectProxy(connection, DBSERVE_PATH, DBSERVE_BUS_NAME) {
-  connect_signal(DBusDbListen, DataChanged, DataChangedCb);
+DBusDbListener::DBusDbListener(DBus::Connection &connection)
+    : DBus::InterfaceProxy(DBSERVER_DBCHANGE_INTERFACE),
+      DBus::ObjectProxy(connection, DBSERVER_PATH, DBSERVER_BUS_NAME) {
+  connect_signal(DBusDbListener, DataChanged, DataChangedCb);
 }
 
-DBusDbListen::~DBusDbListen() {}
+DBusDbListener::~DBusDbListener() {}
 
-void DBusDbListen::DataChangedCb(const DBus::SignalMessage &sig) {
+void DBusDbListener::DataChangedCb(const DBus::SignalMessage &sig) {
   DBus::MessageIter it = sig.reader();
   std::string db_data;
   it >> db_data;
-  LOG_INFO("DBusDbListen DataChanged :\n[%s]\n", db_data.c_str());
+  printf("DBus data changed [%s]\n", db_data.c_str());
 
 #ifdef USE_RKMEDIA
   std::unique_ptr<FlowDbProtocol> db_protocol;
@@ -103,19 +103,19 @@ std::string DBusDbEvent::SelectMoveDetectDb(int id) {
   return Cmd(tmp);
 }
 
-DBusDbEventListen::DBusDbEventListen(DBus::Connection &connection)
-    : DBus::InterfaceProxy(DBSERVE_DBEVENT_CHANGE_INTERFACE),
-      DBus::ObjectProxy(connection, DBSERVE_PATH, DBSERVE_BUS_NAME) {
-  connect_signal(DBusDbEventListen, DataChanged, DataChangedCb);
+DBusDbEventListener::DBusDbEventListener(DBus::Connection &connection)
+    : DBus::InterfaceProxy(DBSERVER_DBEVENT_CHANGE_INTERFACE),
+      DBus::ObjectProxy(connection, DBSERVER_PATH, DBSERVER_BUS_NAME) {
+  connect_signal(DBusDbEventListener, DataChanged, DataChangedCb);
 }
 
-DBusDbEventListen::~DBusDbEventListen() {}
+DBusDbEventListener::~DBusDbEventListener() {}
 
-void DBusDbEventListen::DataChangedCb(const DBus::SignalMessage &sig) {
+void DBusDbEventListener::DataChangedCb(const DBus::SignalMessage &sig) {
   DBus::MessageIter it = sig.reader();
   std::string db_data;
   it >> db_data;
-  LOG_INFO("DBusDbEventListen DataChanged :\n[%s]\n", db_data.c_str());
+  printf("DBus envent: [%s]\n", db_data.c_str());
 
 #ifdef USE_RKMEDIA
   std::unique_ptr<FlowDbProtocol> db_protocol;

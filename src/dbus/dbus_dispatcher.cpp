@@ -4,6 +4,9 @@
 
 #include "dbus_dispatcher.h"
 
+#include <signal.h>
+#include <stdio.h>
+
 namespace rockchip {
 namespace aiserver {
 
@@ -16,6 +19,7 @@ DBus::BusDispatcher DbusDispatcher::dispatcher_;
 
 DbusDispatcher::DbusDispatcher(int timeout_ms) : timeout_ms_(timeout_ms) {
   DBus::_init_threading();
+
   DBus::default_dispatcher = &dispatcher_;
   new DBus::DefaultTimeout(timeout_ms_, false, &dispatcher_);
 }

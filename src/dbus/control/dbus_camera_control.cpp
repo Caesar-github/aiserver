@@ -9,30 +9,25 @@
 #include <string>
 #include <unistd.h>
 
+#include "logger/log.h"
 #include "dbus_camera_control.h"
-#include "flow_export.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
-#define LOG_TAG "dbus_camera_control.cpp"
+#define LOG_TAG "dbus_camera_ctl"
 
 namespace rockchip {
 namespace aiserver {
 
 DBusCameraControl::DBusCameraControl(DBus::Connection &connection)
-    : DBus::ObjectAdaptor(connection, MEDIA_CONTROL_CAMERA_PATH) {}
+    : DBus::ObjectAdaptor(connection, MEDIA_CONTROL_PATH_CAMERA) {}
 
 DBusCameraControl::~DBusCameraControl() {}
 
 int32_t DBusCameraControl::SetFrameRate(const int32_t &id,
                                         const int32_t &param) {
   LOG_INFO("DBusCameraControl::SetFrameRate\n");
-  camera_control_ = GetCameraControl(id);
-  if (camera_control_ == nullptr) {
-    LOG_INFO("CameraControl::SetFrameRate id %d is no exist\n", id);
-    return -1;
-  }
   // TODO
   return 0;
 }
@@ -60,17 +55,14 @@ int32_t DBusCameraControl::StopCamera(const int32_t &id) {
 int32_t DBusCameraControl::TakePicture(const int32_t &id,
                                        const int32_t &count) {
   LOG_INFO("DBusCameraControl::TakePicture\n");
-  return TakePhoto(id, count);
+  // TODO
+  return 0;
 }
 
 int32_t DBusCameraControl::TakePicture(const std::string &id_count) {
   LOG_INFO("DBusCameraControl::TakePicture\n");
-  int pos = id_count.find("_");
-  int id = atoi(id_count.substr(0, pos).c_str());
-  int count = atoi(id_count.substr(pos + 1, id_count.size() - 1).c_str());
-  LOG_INFO("DBusCameraControl::TakePicture id is %d\n", id);
-  LOG_INFO("DBusCameraControl::TakePicture count is %d\n", count);
-  return TakePhoto(id, count);
+  // TODO
+  return 0;
 }
 
 } // namespace aiserver

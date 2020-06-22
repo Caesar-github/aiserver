@@ -50,7 +50,7 @@ set(AI_SERVER_SRC aiserver.cpp)
 aux_source_directory(utils/thread AI_SERVER_SRC)
 aux_source_directory(task_graph   AI_SERVER_SRC)
 aux_source_directory(dbus         AI_SERVER_SRC)
-# aux_source_directory(dbus/control AI_SERVER_SRC)
+aux_source_directory(dbus/control AI_SERVER_SRC)
 aux_source_directory(dbus/database        AI_SERVER_SRC)
 aux_source_directory(dbus/storage_manager AI_SERVER_SRC)
 

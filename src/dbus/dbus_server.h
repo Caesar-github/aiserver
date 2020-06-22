@@ -13,21 +13,9 @@
 
 #include <dbus-c++/dbus.h>
 
-#if USE_RKMEDIA
-#include "buffer.h"
-#include "encoder.h"
-#include "flow.h"
-#include "key_string.h"
-#include "media_config.h"
-#include "media_type.h"
-#include "utils.h"
-#include "flow_manager.h"
-#include "dbus_media_control.h"
-#include "dbus_media_control_adaptor.h"
-#endif
-
 #include "dbus_dbserver.h"
 #include "dbus_dispatcher.h"
+#include "dbus_media_control.h"
 #include "dbus_storage_manager.h"
 
 #include "server.h"
@@ -57,14 +45,11 @@ private:
   bool session_;
   bool need_dbserver_;
 
-#if USE_RKMEDIA
-  FlowManagerPtr flow_manager_;
   std::unique_ptr<DBusMediaControl> media_control_;
-#endif
   std::shared_ptr<DBusDbServer> dbserver_proxy_;
-  std::unique_ptr<DBusDbListen> dbserver_listen_;
+  std::unique_ptr<DBusDbListener> dbserver_listen_;
   std::shared_ptr<DBusDbEvent> dbevent_proxy_;
-  std::unique_ptr<DBusDbEventListen> dbevent_listen_;
+  std::unique_ptr<DBusDbEventListener> dbevent_listen_;
   std::shared_ptr<DBusStorageManager> strorage_proxy_;
   std::unique_ptr<DBusStorageManagerListen> strorage_listen_;
 };

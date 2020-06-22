@@ -13,16 +13,7 @@
 
 #include <memory>
 
-#include "easymedia/buffer.h"
-#include "easymedia/encoder.h"
-#include "easymedia/flow.h"
-#include "easymedia/key_string.h"
-#include "easymedia/media_config.h"
-#include "easymedia/media_type.h"
-#include "easymedia/utils.h"
-
 #include "dbus_dispatcher.h"
-#include "flow_export.h"
 
 namespace rockchip {
 namespace aiserver {
@@ -36,18 +27,12 @@ public:
   DBusCameraControl(DBus::Connection &connection);
   virtual ~DBusCameraControl();
 
-  friend std::shared_ptr<CameraControl> GetCameraControl(int id);
-
   int32_t SetFrameRate(const int32_t &id, const int32_t &param);
-  int32_t SetResolution(const int32_t &id, const int32_t &param1,
-                        const int32_t &param2);
+  int32_t SetResolution(const int32_t &id, const int32_t &param1, const int32_t &param2);
   int32_t StartCamera(const int32_t &id);
   int32_t StopCamera(const int32_t &id);
   int32_t TakePicture(const int32_t &id, const int32_t &count);
   int32_t TakePicture(const std::string &id_count);
-
-private:
-  std::shared_ptr<CameraControl> camera_control_;
 };
 
 } // namespace aiserver

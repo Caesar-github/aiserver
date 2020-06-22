@@ -68,10 +68,10 @@ private:
   DBus::Pipe *pipe_;
 };
 
-class DBusDbListen : public DBus::InterfaceProxy, public DBus::ObjectProxy {
+class DBusDbListener : public DBus::InterfaceProxy, public DBus::ObjectProxy {
 public:
-  DBusDbListen(DBus::Connection &connection);
-  virtual ~DBusDbListen();
+  DBusDbListener(DBus::Connection &connection);
+  virtual ~DBusDbListener();
   void DataChangedCb(const DBus::SignalMessage &sig);
 };
 
@@ -83,6 +83,12 @@ public:
 
 #define DB_SELECT_MOVE_DETECTION_CMD                                           \
   "{ \"table\": \"MoveDetection\", "                                           \
+  "\"key\": { \"id\": %d }, "                                                  \
+  "\"data\": \"*\", "                                                          \
+  "\"cmd\": \"Select\" }"
+
+#define DB_SELECT_SMART_COVER_CMD                                              \
+  "{ \"table\": \"SmartCover\", "                                              \
   "\"key\": { \"id\": %d }, "                                                  \
   "\"data\": \"*\", "                                                          \
   "\"cmd\": \"Select\" }"
@@ -102,11 +108,11 @@ private:
   DBus::Pipe *pipe_;
 };
 
-class DBusDbEventListen : public DBus::InterfaceProxy,
+class DBusDbEventListener : public DBus::InterfaceProxy,
                           public DBus::ObjectProxy {
 public:
-  DBusDbEventListen(DBus::Connection &connection);
-  virtual ~DBusDbEventListen();
+  DBusDbEventListener(DBus::Connection &connection);
+  virtual ~DBusDbEventListener();
   void DataChangedCb(const DBus::SignalMessage &sig);
 };
 

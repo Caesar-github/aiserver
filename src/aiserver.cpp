@@ -40,6 +40,8 @@
 #define AI_GRAPH_JSON_PREFIX "/data/"
 #define AI_GRAPH_JSON "aiserver.json"
 
+#define USE_ROCKIT 1
+
 #define AI_APP_GRAPH_CONFIG_FILE    "/oem/usr/share/aiserver/camera_nv12_rkrga_300_rknn_graph.json"
 
 typedef struct _AIServerCtx {
@@ -128,16 +130,16 @@ int main(int argc, char *argv[]) {
     // parse_args(argc, argv);
 
     // install signal handlers.
-#if 0
-    signal(SIGQUIT, sigterm_handler);
-    signal(SIGINT,  sigterm_handler);
-    signal(SIGTERM, sigterm_handler);
-    signal(SIGXCPU, sigterm_handler);
-    signal(SIGPIPE, SIG_IGN);
-#else
+#if USE_ROCKIT
+    // signal(SIGQUIT, sigterm_handler);
+    // signal(SIGINT,  sigterm_handler);
+    // signal(SIGTERM, sigterm_handler);
+    // signal(SIGXCPU, sigterm_handler);
+    // signal(SIGPIPE, SIG_IGN);
+
     _ai_server_ctx.mQuit         = false;
     _ai_server_ctx.mNeedDbus     = true;
-    _ai_server_ctx.mNeedDbserver = true;
+    _ai_server_ctx.mNeedDbserver = false;
     _ai_server_ctx.mSessionBus   = false;
 #endif
 

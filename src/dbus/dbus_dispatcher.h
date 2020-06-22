@@ -17,18 +17,20 @@
 namespace rockchip {
 namespace aiserver {
 
-#define MEDIA_CONTROL_BUS_NAME "rockchip.aiserver.control"
-#define MEDIA_CONTROL_ENCODER_PATH "/rockchip/aiserver/control/encoder"
-#define MEDIA_CONTROL_CAMERA_PATH "/rockchip/aiserver/control/camera"
-#define MEDIA_CONTROL_AUDIO_PATH "/rockchip/aiserver/control/audio"
+#define MEDIA_CONTROL_BUS_NAME     "rockchip.aiserver.control"
+#define MEDIA_CONTROL_PATH_ENCODER "/rockchip/aiserver/control/encoder"
+#define MEDIA_CONTROL_PATH_CAMERA  "/rockchip/aiserver/control/camera"
+#define MEDIA_CONTROL_PATH_AUDIO   "/rockchip/aiserver/control/audio"
+#define MEDIA_CONTROL_PATH_GRAPH   "/rockchip/aiserver/control/graph"
+#define MEDIA_CONTROL_PATH_FEATURE "/rockchip/aiserver/control/feature"
 
 // define by package dbserver
-#define DBSERVE_BUS_NAME "rockchip.dbserver"
-#define DBSERVE_PATH "/"
-#define DBSERVE_MEDIA_INTERFACE DBSERVE_BUS_NAME ".media"
-#define DBSERVE_DBCHANGE_INTERFACE DBSERVE_MEDIA_INTERFACE
-#define DBSERVE_EVENT_INTERFACE DBSERVE_BUS_NAME ".event"
-#define DBSERVE_DBEVENT_CHANGE_INTERFACE DBSERVE_EVENT_INTERFACE
+#define DBSERVER_BUS_NAME "rockchip.dbserver"
+#define DBSERVER_PATH "/"
+#define DBSERVER_MEDIA_INTERFACE DBSERVER_BUS_NAME ".media"
+#define DBSERVER_DBCHANGE_INTERFACE DBSERVER_MEDIA_INTERFACE
+#define DBSERVER_EVENT_INTERFACE DBSERVER_BUS_NAME ".event"
+#define DBSERVER_DBEVENT_CHANGE_INTERFACE DBSERVER_EVENT_INTERFACE
 
 // define by package storage_manager
 #define STORAGE_MANAGER_BUS_NAME "rockchip.StorageManager"
