@@ -1,0 +1,79 @@
+{
+    "pipe_0": {
+        "node_0": {
+            "node_opts": {
+                "node_name"       : "fread",
+                "node_type"       : "source",
+                "node_uid"        : "source_0",
+                "node_parent"     : "none"
+            },
+            "node_opts_extra": {
+                "node_source_uri" : "/data/test.yuv",
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "0",
+                "node_sync_type"  : "sw"
+            },
+            "stream_opts": {
+                "stream_name"     : "file:nv12",
+                "stream_uid"      : "file:0",
+                "stream_fmt_in"   : "image:none",
+                "stream_fmt_out"  : "image:nv12"
+            },
+            "stream_opts_extra": {
+                "opt_width"      : "1920",
+                "opt_height"     : "1080",
+                "opt_vir_width"  : "1920",
+                "opt_vir_height" : "1088"
+            }
+        },
+        "node_1": {
+            "node_opts": {
+                "node_name"       : "rkmpp",
+                "node_type"       : "encoder",
+                "node_uid"        : "encoder_0",
+                "node_parent"     : "fread"
+            },
+            "node_opts_extra": {
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "4",
+                "node_sync_type"  : "sw"
+            },
+            "stream_opts": {
+                "stream_name"     : "codec:jpeg",
+                "stream_uid"      : "codec:0",
+                "stream_fmt_in"   : "image:nv12",
+                "stream_fmt_out"  : "image:jpeg"
+            },
+            "stream_opts_extra": {
+                "opt_width"      : "1920",
+                "opt_height"     : "1080",
+                "opt_vir_width"  : "1920",
+                "opt_vir_height" : "1080",
+                "opt_bitrate"    : "8000000",
+                "opt_codec_type" : "6",
+                "opt_frame_rate" : "30",
+                "opt_profile"    : "100",
+                "opt_level"      : "52",
+                "opt_gop"        : "30",
+                "opt_qp_init"    : "24",
+                "opt_qp_step"    : "4",
+                "opt_qp_min"     : "12",
+                "opt_qp_max"     : "48"
+            }
+        },
+        "node_2": {
+            "node_opts": {
+                "node_name"       : "fwrite",
+                "node_type"       : "sink",
+                "node_uid"        : "sink_0",
+                "node_parent"     : "rkmpp"
+            },
+            "node_opts_extra": {
+                "node_source_uri" : "/data/test.yuv",
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "0",
+                "node_sync_type"  : "sw"
+            }
+        }
+    }
+}
