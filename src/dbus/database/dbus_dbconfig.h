@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <memory>
 
 namespace rockchip {
 namespace aiserver {

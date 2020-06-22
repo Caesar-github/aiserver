@@ -1,1 +1,81 @@
-camera_nv12_rkrga_300_rknn_facedetect.json
+{
+    "pipe_0": {
+        "node_0": {
+            "node_opts": {
+                "node_name"       : "rkisp",
+                "node_type"       : "source",
+                "node_uid"        : "source_0",
+                "node_parent"     : "none"
+            },
+            "node_opts_extra": {
+                "node_source_uri" : "/dev/video0",
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "4",
+                "node_sync_type"  : "sw"
+            },
+            "stream_opts": {
+                "stream_name"     : "isp:nv12",
+                "stream_uid"      : "isp:0",
+                "stream_fmt_in"   : "image:none",
+                "stream_fmt_out"  : "image:nv12"
+            },
+            "stream_opts_extra": {
+                "opt_width"      : "1920",
+                "opt_height"     : "1080",
+                "opt_vir_width"  : "1920",
+                "opt_vir_height" : "1080"
+            }
+        },
+        "node_1": {
+            "node_opts": {
+                "node_name"       : "rkrga",
+                "node_type"       : "filter",
+                "node_uid"        : "filter_0",
+                "node_parent"     : "rkisp"
+            },
+            "node_opts_extra": {
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "4",
+                "node_sync_type"  : "sw"
+            },
+            "stream_opts": {
+                "stream_name"     : "filter:image",
+                "stream_uid"      : "filter:0",
+                "stream_fmt_in"   : "image:nv12",
+                "stream_fmt_out"  : "image:rgb888"
+            },
+            "stream_opts_extra": {
+                "opt_width"      : "300",
+                "opt_height"     : "300",
+                "opt_vir_width"  : "300",
+                "opt_vir_height" : "300",
+                "opt_trans_rect"  : "(0,0,640,480)->(0,0,300,300)"
+                "opt_trans_rotate": "0"
+            }
+        },
+        "node_2": {
+            "node_opts": {
+                "node_name"       : "rockx",
+                "node_type"       : "filter",
+                "node_uid"        : "filter_1",
+                "node_parent"     : "rkrga"
+            },
+            "node_opts_extra": {
+                "node_source_uri" : "rockx_face_detect",
+                "node_buff_dimen" : "fixed",
+                "node_buff_count" : "0",
+                "node_sync_type"  : "sw"
+            }
+            "stream_opts": {
+                "stream_name"     : "filter:image",
+                "stream_uid"      : "filter:1",
+                "stream_fmt_in"   : "image:rgb888",
+                "stream_fmt_out"  : "image:rect"
+            },
+            "stream_opts_extra": {
+                "opt_md_roi_cnt"  : "5",
+                "opt_md_roi_rect" : "none"
+            }
+        }
+    }
+}

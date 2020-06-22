@@ -20,12 +20,10 @@ DBusServer::DBusServer(bool session, bool need_dbserver)
     LOG_DEBUG("dbus server setup\n");
 
     media_control_.reset(new DBusMediaControl());
-
-    RegisteredDBusAdaptor();
 }
 
 DBusServer::~DBusServer() {
-    UnRegisteredDBusAdaptor();
+    UnRegisterMediaControl();
     media_control_.reset(nullptr);
 }
 
@@ -57,53 +55,18 @@ ThreadStatus DBusServer::status(void) {
       return kThreadRunning;
 }
 
-int DBusServer::RegisteredDBusAdaptor() {
+int DBusServer::RegisterMediaControl(RTGraphListener *listener) {
     DbusDispatcher(100);
     DBus::Connection conn =
         session_ ? DBus::Connection::SessionBus() : DBus::Connection::SystemBus();
     conn.request_name(MEDIA_CONTROL_BUS_NAME);
   
 
-    media_control_->listenMediaCtrl(conn, NULL);
-  
-    if (need_dbserver_) {
-      dbserver_proxy_ =
-          std::make_shared<DBusDbServer>(conn, DBSERVER_PATH, DBSERVER_BUS_NAME);
-      dbserver_listen_.reset(new DBusDbListener(conn));
-      dbevent_proxy_ =
-          std::make_shared<DBusDbEvent>(conn, DBSERVER_PATH, DBSERVER_BUS_NAME);
-      dbevent_listen_.reset(new DBusDbEventListener(conn));
-      strorage_proxy_ = std::make_shared<DBusStorageManager>(
-          conn, STORAGE_MANAGER_PATH, STORAGE_MANAGER_BUS_NAME);
-      strorage_listen_.reset(new DBusStorageManagerListen(conn));
-    }
+    media_control_->listenMediaCtrl(conn, listener);
     return 0;
 }
 
-int DBusServer::UnRegisteredDBusAdaptor() {
-    if (need_dbserver_) {
-        if (strorage_listen_) {
-            strorage_listen_.reset(nullptr);
-        }
-        if (strorage_proxy_) {
-            strorage_proxy_.reset();
-            strorage_proxy_ = nullptr;
-        }
-        if (dbevent_listen_) {
-            dbevent_listen_.reset(nullptr);
-        }
-        if (dbserver_listen_) {
-            dbserver_listen_.reset(nullptr);
-        }
-        if (dbevent_proxy_) {
-            dbevent_proxy_.reset();
-            dbevent_proxy_ = nullptr;
-        }
-        if (dbserver_proxy_) {
-            dbserver_proxy_.reset();
-            dbserver_proxy_ = nullptr;
-        }
-    }
+int DBusServer::UnRegisterMediaControl() {
     return 0;
 }
 

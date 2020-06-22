@@ -32,8 +32,8 @@ public:
   virtual void start(void) override;
   virtual void stop(void) override;
   ThreadStatus status(void);
-  int RegisteredDBusAdaptor();
-  int UnRegisteredDBusAdaptor();
+  int RegisterMediaControl(RTGraphListener *listener);
+  int UnRegisterMediaControl();
   std::shared_ptr<DBusDbServer> GetDBserverProxy() { return dbserver_proxy_; }
   std::shared_ptr<DBusDbEvent> GetDBEventProxy() { return dbevent_proxy_; }
   std::shared_ptr<DBusStorageManager> GetStorageProxy() {
