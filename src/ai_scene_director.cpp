@@ -35,24 +35,49 @@
 
 // basic task graph
 #define ROCKX_SCENE_SINGLE    "/oem/usr/share/aiserver/camera_nv12_rkrga_300_rknn_graph.json"
-#define ROCKX_SCENE_COMPLEX   "/oem/usr/share/aiserver/camera_complex.json"
+#define ROCKX_SCENE_COMPLEX   "/oem/usr/share/aiserver/camera_nv12_rkrga_300.json"
 
 // task graph for subgraph
-#define ROCKX_SUBGRAPH_FACE_DECTECT    "/oem/usr/share/aiserver/nv12_rkrga_300_rknn_facedetect.json"
-#define ROCKX_SUBGRAPH_POSE_BODY       "/oem/usr/share/aiserver/nv12_rkrga_300_rknn_posebody.json"
-#define ROCKX_SUBGRAPH_FACE_LANDMARK   "/oem/usr/share/aiserver/nv12_rkrga_300_rknn_face_landmark.json"
+#define ROCKX_SUBGRAPH_FACE_DECTECT    "/oem/usr/share/aiserver/rknn_facedetect.json"
+#define ROCKX_SUBGRAPH_POSE_BODY       "/oem/usr/share/aiserver/rknn_posebody.json"
+#define ROCKX_SUBGRAPH_FACE_LANDMARK   "/oem/usr/share/aiserver/rknn_face_landmark.json"
 
 namespace rockchip {
 namespace aiserver {
 
-RT_RET nn_data_call_back(RTMediaBuffer *buffer) {
-    RTRknnAnalysisResults *nnReply = NULL;
-    buffer->getMetaData()->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
-    if (RT_NULL != nnReply) {
+#define PORT_LINEAR         (2 << 16)
+#define PORT_FACE_DETECT    (2 << 16)
+#define PORT_FACE_LANDMART  (4 << 16)
+#define PORT_POSE_BODY      (3 << 16)
+
+RT_RET nn_data_callback(RTMediaBuffer *buffer, INT32 streamId) {
+    RTRknnAnalysisResults *nnReply   = RT_NULL;
+    RtMetaData            *extraInfo = RT_NULL;
+    extraInfo = buffer->extraMeta(streamId);
+    if (RT_NULL != extraInfo) {
+        extraInfo->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
+        if (RT_NULL != nnReply) {
         ShmControl::sendNNDataByRndis((void*)nnReply);
+        }
     }
     buffer->release();
     return RT_OK;
+}
+
+RT_RET nn_data_callback_single(RTMediaBuffer *buffer) {
+    return nn_data_callback(buffer, PORT_LINEAR);
+}
+
+RT_RET nn_data_callback_face_detect(RTMediaBuffer *buffer) {
+    return nn_data_callback(buffer, PORT_FACE_DETECT);
+}
+
+RT_RET nn_data_callback_face_landmark(RTMediaBuffer *buffer) {
+    return nn_data_callback(buffer, PORT_FACE_LANDMART);
+}
+
+RT_RET nn_data_callback_pose_body(RTMediaBuffer *buffer) {
+    return nn_data_callback(buffer, PORT_POSE_BODY);
 }
 
 AISceneDirector::AISceneDirector() {
@@ -75,7 +100,8 @@ int32_t AISceneDirector::runNNSingle(const char* uri) {
     mTaskGraph->autoBuild(ROCKX_SCENE_SINGLE);
 
     // observer, prepare and start task graph
-    mTaskGraph->observeOutputStream("faceDetectOutput", 2, nn_data_call_back);
+    RT_LOGE("runNNSingle(%s)", ROCKX_SCENE_SINGLE);
+    mTaskGraph->observeOutputStream("single_output", 2 << 16, nn_data_callback_single);
     mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
     mTaskGraph->invoke(GRAPH_CMD_START, NULL);
     return 0;
@@ -85,9 +111,14 @@ int32_t AISceneDirector::runNNComplex() {
     mTaskGraph = new RTTaskGraph("ai_app");
     mTaskGraph->autoBuild(ROCKX_SCENE_COMPLEX);
 
+    RT_LOGE("runNNComplex(%s)", ROCKX_SCENE_COMPLEX);
+
     // prepare and start task graph
     mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
     mTaskGraph->invoke(GRAPH_CMD_START, NULL);
+
+    // this->ctrlSubGraph(ROCKX_MODEL_FACE_DETECT, true);
+    // this->ctrlSubGraph(ROCKX_MODEL_FACE_LANDMARK, true);
     return 0;
 }
 
@@ -122,7 +153,7 @@ int32_t AISceneDirector::ctrlSubGraph(const char* nnName, bool enable) {
 int32_t AISceneDirector::ctrlFaceDectect(bool enable) {
     if (enable) {
         mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_FACE_DECTECT);
-        mTaskGraph->observeOutputStream("nn:facedetect", 2, nn_data_call_back);
+        mTaskGraph->observeOutputStream("nn:facedetect", PORT_FACE_DETECT, nn_data_callback_face_detect);
     } else {
         mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_FACE_DECTECT);
     }
@@ -132,7 +163,7 @@ int32_t AISceneDirector::ctrlFaceDectect(bool enable) {
 int32_t AISceneDirector::ctrlFaceLandmark(bool enable) {
     if (enable) {
         mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_FACE_LANDMARK);
-        mTaskGraph->observeOutputStream("nn:faceLandmark", 4, nn_data_call_back);
+        mTaskGraph->observeOutputStream("nn:faceLandmark", PORT_FACE_LANDMART, nn_data_callback_face_landmark);
     } else {
         mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_FACE_LANDMARK);
     }
@@ -142,7 +173,7 @@ int32_t AISceneDirector::ctrlFaceLandmark(bool enable) {
 int32_t AISceneDirector::ctrlFacePoseBody(bool enable) {
     if (enable) {
         mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_POSE_BODY);
-        mTaskGraph->observeOutputStream("nn:posebody", 3, nn_data_call_back);
+        mTaskGraph->observeOutputStream("nn:posebody", PORT_POSE_BODY, nn_data_callback_pose_body);
     } else {
         mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_POSE_BODY);
     }

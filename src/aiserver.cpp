@@ -67,9 +67,9 @@ void AIServer::setupTaskGraph() {
     mAIDirector.reset(new AISceneDirector());
     mGraphListener.reset(new RTAIGraphListener(mAIDirector.get()));
 
-    // RT_LOGD("AIServer: ctx.mFlagDBusServer   = %d", _ai_server_ctx.mFlagDBusServer);
-    // RT_LOGD("AIServer: ctx.mFlagDBusDbServer = %d", _ai_server_ctx.mFlagDBusDbServer);
-    // RT_LOGD("AIServer: ctx.mTaskMode         = %d", _ai_server_ctx.mTaskMode);
+    RT_LOGD("AIServer: ctx.mFlagDBusServer   = %d", _ai_server_ctx.mFlagDBusServer);
+    RT_LOGD("AIServer: ctx.mFlagDBusDbServer = %d", _ai_server_ctx.mFlagDBusDbServer);
+    RT_LOGD("AIServer: ctx.mTaskMode         = %d", _ai_server_ctx.mTaskMode);
     if (_ai_server_ctx.mFlagDBusServer) {
         mDbusServer.reset(new DBusServer(_ai_server_ctx.mFlagDBusConn, _ai_server_ctx.mFlagDBusDbServer));
         assert(mDbusServer);
@@ -113,9 +113,17 @@ static void sigterm_handler(int sig) {
 using namespace rockchip::aiserver;
 
 int main(int argc, char *argv[]) {
+    _ai_server_ctx.mQuit             = false;
+    _ai_server_ctx.mFlagDBusServer   = true;
+    _ai_server_ctx.mFlagDBusDbServer = false;
+    _ai_server_ctx.mFlagDBusConn     = false;
+
     parse_args(argc, argv);
-    __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, \
-                       argv[0], "1.0.0");
+
+    RT_LOGD("parse_args done!");
+
+    // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace,
+    //                   argv[0], "1.0.0");
 
     // install signal handlers.
 #if USE_ROCKIT
@@ -124,20 +132,20 @@ int main(int argc, char *argv[]) {
     // signal(SIGTERM, sigterm_handler);
     // signal(SIGXCPU, sigterm_handler);
     // signal(SIGPIPE, SIG_IGN);
-
-    _ai_server_ctx.mQuit             = false;
-    _ai_server_ctx.mFlagDBusServer   = true;
-    _ai_server_ctx.mFlagDBusDbServer = false;
-    _ai_server_ctx.mFlagDBusConn     = false;
-    _ai_server_ctx.mTaskMode         = ROCKX_TASK_MODE_SINGLE;
 #endif
 
     // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, argv[0], "1.0.0");
     std::unique_ptr<AIServer> aiserver = std::unique_ptr<AIServer>(new AIServer());
+    RT_LOGD("new AIServer() done!");
+
+    // rt_mem_record_reset();
     aiserver->setupTaskGraph();
+    RT_LOGD("aiserver->setupTaskGraph(); done!");
+
     aiserver->waitUntilDone();
     aiserver.reset();
 
+    rt_mem_record_dump();
     return 0;
 }
 

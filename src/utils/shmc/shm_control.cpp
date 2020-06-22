@@ -67,7 +67,7 @@ void pushFaceDetectInfo(NNData *nnData, void *bufptr, int size) {
         facedetect->set_right(x2);
         facedetect->set_bottom(y2);
         facedetect->set_score(score);
-        printf("AIServer: FaceInfo Rect[%04d,%04d,%04d,%04d] score=%f\n", x1, y1, x2, y2, score);
+        // printf("AIServer: FaceInfo Rect[%04d,%04d,%04d,%04d] score=%f\n", x1, y1, x2, y2, score);
     }
 }
 
