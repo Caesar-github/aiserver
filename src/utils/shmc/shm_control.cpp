@@ -14,6 +14,7 @@
 #include "shm_control.h"
 #include "rknn_user.h"
 #include "logger/log.h"
+#include "rockit/RTMediaRockx.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -66,7 +67,7 @@ void pushFaceDetectInfo(NNData *nnData, void *bufptr, int size) {
         facedetect->set_right(x2);
         facedetect->set_bottom(y2);
         facedetect->set_score(score);
-        printf("AIServer: FaceInfo Rect[%d,%d,%d,%d] score=%f\n", x1, y1, x2, y2, score);
+        printf("AIServer: FaceInfo Rect[%04d,%04d,%04d,%04d] score=%f\n", x1, y1, x2, y2, score);
     }
 }
 
@@ -147,23 +148,69 @@ void PushUserHandler(void *handler, int type, void *buffer, int size) {
     }
 }
 
-void sendNNDataFace(int left, int top, int right, int bottom) {
+void sendNNDataToRndis(void* nnReply) {
+    RTRknnAnalysisResults *nnResult = (RTRknnAnalysisResults *)nnReply;
+    int        nnCount    = nnResult->counter;
+
     ShmNNData shmData     = {0};
     shmData.timestamp     = 0;
-    shmData.size          = 1;
-    shmData.nn_model_name = "rockx_face_detect";
+    shmData.size          = nnCount;
+    RknnResult nnData[nnCount];
 
-    int nnCount = 1;
-    RknnResult result = {0};
-    result.img_w   = 300;
-    result.img_h   = 300;
-    result.timeval = 5*1000;
-    result.type    = NNRESULT_TYPE_FACE;
-    result.status  = SUCCESS;
-    result.face_info.object.box   = {left, top, right, bottom};
-    result.face_info.object.score = 0.9;
-    shmData.rknn_result = &result;
-    PushUserHandler(nullptr, 0, (void*)(&shmData), nnCount);
+    switch ((RknnResultType)nnResult->results[0].type) {
+      case NNRESULT_TYPE_FACE:
+        shmData.nn_model_name = "rockx_face_detect";
+        break;
+      case NNRESULT_TYPE_BODY:
+        shmData.nn_model_name = "rockx_pose_body";
+        break;
+      case NNRESULT_TYPE_LANDMARK:
+        shmData.nn_model_name = "rockx_face_landmark";
+        break;
+      case NNRESULT_TYPE_FINGER:
+        shmData.nn_model_name = "rockx_pose_finger";
+        break;
+      default:
+        break;
+    }
+
+    for(int idx = 0; idx < nnCount; idx++) {
+        nnData[idx].img_w   = 300;
+        nnData[idx].img_h   = 300;
+        nnData[idx].timeval = 5*1000;
+        nnData[idx].status  = SUCCESS;
+        nnData[idx].type    = (RknnResultType)nnResult->results[idx].type;
+
+        switch (nnData[idx].type) {
+          case NNRESULT_TYPE_FACE: {
+            rockx_object_t *nnface = &(nnResult->results[idx].face_info.object);
+            nnData[idx].face_info.object.box.left   = nnface->box.left;
+            nnData[idx].face_info.object.box.top    = nnface->box.top;
+            nnData[idx].face_info.object.box.right  = nnface->box.right;
+            nnData[idx].face_info.object.box.bottom = nnface->box.bottom;
+            nnData[idx].face_info.object.score = nnface->score;
+            }break;
+          case NNRESULT_TYPE_BODY:
+            memcpy(&(nnResult->results[idx].body_info.object), \
+                      &(nnData[idx].body_info.object), sizeof(rockx_keypoints_t));
+            break;
+          case NNRESULT_TYPE_LANDMARK:
+            memcpy(&(nnResult->results[idx].landmark_info.object), \
+                      &(nnData[idx].landmark_info.object), sizeof(rockx_face_landmark_t));
+            break;
+          case NNRESULT_TYPE_FINGER:
+            memcpy(&(nnResult->results[idx].finger_info.object), \
+                      &(nnData[idx].finger_info.object), sizeof(rockx_keypoints_t));
+            break;
+          default:
+            nnData[idx].status  = FAILURE;
+            break;
+        }
+    }
+    if (nnCount > 0) {
+        shmData.rknn_result = nnData;
+        PushUserHandler(nullptr, 0, (void*)(&shmData), nnCount);
+    }
 }
 
 void initialize() {

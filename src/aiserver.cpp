@@ -40,7 +40,7 @@
 #define AI_GRAPH_JSON_PREFIX "/data/"
 #define AI_GRAPH_JSON "aiserver.json"
 
-#define AI_APP_GRAPH_CONFIG_FILE    "/oem/etc/aiserver/camera_nv12_rkrga_300_rknn_facedetect.json"
+#define AI_APP_GRAPH_CONFIG_FILE    "/oem/usr/share/aiserver/camera_nv12_rkrga_300_rknn_graph.json"
 
 typedef struct _AIServerCtx {
     int mFlagMinilog;
@@ -62,27 +62,23 @@ namespace rockchip {
 namespace aiserver {
 
 RT_RET nn_data_call_back(RTMediaBuffer *buffer) {
-    RTRknnAnalysisResults *nnResult = NULL;
-    buffer->getMetaData()->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnResult));
-    for(int idx = 0; idx < nnResult->counter; idx++) {
-        INT32 left = nnResult->results[idx].face_info.object.box.left;
-        INT32 top = nnResult->results[idx].face_info.object.box.top;
-        INT32 right = nnResult->results[idx].face_info.object.box.right;
-        INT32 bottom = nnResult->results[idx].face_info.object.box.bottom;
-        // RT_LOGE("face detect regs[%d %d %d %d]", left, top, right, bottom);
-        ShmControl::sendNNDataFace(left, top, right, bottom);
+    RTRknnAnalysisResults *nnReply = NULL;
+    buffer->getMetaData()->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
+    if (RT_NULL != nnReply) {
+        ShmControl::sendNNDataToRndis((void*)nnReply);
     }
     buffer->release();
     return RT_OK;
 }
 
 AIServer::AIServer() {
-    LOG_DEBUG("media servers setup ...\n");
-    
+    RT_LOGD("AIServer: ctx.mNeedDbus     = %d", _ai_server_ctx.mNeedDbus);
+    RT_LOGD("AIServer: ctx.mNeedDbserver = %d", _ai_server_ctx.mNeedDbserver);
+
     if (_ai_server_ctx.mNeedDbus) {
-        // mDbusServer.reset(new DBusServer(_ai_server_ctx.mSessionBus, _ai_server_ctx.mNeedDbserver));
-        // assert(mDbusServer);
-        // mDbusServer->start();
+        mDbusServer.reset(new DBusServer(_ai_server_ctx.mSessionBus, _ai_server_ctx.mNeedDbserver));
+        assert(mDbusServer);
+        mDbusServer->start();
     }
 
 #if 0
@@ -138,6 +134,11 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, sigterm_handler);
     signal(SIGXCPU, sigterm_handler);
     signal(SIGPIPE, SIG_IGN);
+#else
+    _ai_server_ctx.mQuit         = false;
+    _ai_server_ctx.mNeedDbus     = true;
+    _ai_server_ctx.mNeedDbserver = true;
+    _ai_server_ctx.mSessionBus   = false;
 #endif
 
     // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, argv[0], "1.0.0");

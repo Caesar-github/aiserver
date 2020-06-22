@@ -22,7 +22,9 @@ namespace ShmControl {
 
 
 void initialize();
-void sendNNDataFace(int left, int top, int right, int bottom);
+
+void sendNNDataToRndis(void* nnReply);
+
 void pushUserHandler(void *handler, int type, void *buffer, int size);
 
 } // namespace rndis_server

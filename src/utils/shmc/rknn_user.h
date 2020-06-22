@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 using RknnCallBack = std::add_pointer<void(void* handler, int type, void *ptr, int size)>::type;
-using RknnHandler = std::add_pointer<void*>::type;
+// using RknnHandler = std::add_pointer<void*>::type;
 
 typedef struct Rect {
     int left;
