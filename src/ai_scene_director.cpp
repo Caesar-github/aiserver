@@ -101,7 +101,8 @@ int32_t AISceneDirector::runNNSingle(const char* uri) {
 
     // observer, prepare and start task graph
     RT_LOGE("runNNSingle(%s)", ROCKX_SCENE_SINGLE);
-    mTaskGraph->observeOutputStream("single_output", 2 << 16, nn_data_callback_single);
+    mTaskGraph->observeOutputStream("single_output", PORT_LINEAR,    nn_data_callback_single);
+    mTaskGraph->observeOutputStream("single_output", PORT_POSE_BODY, nn_data_callback_pose_body);
     mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
     mTaskGraph->invoke(GRAPH_CMD_START, NULL);
     return 0;
