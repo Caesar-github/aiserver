@@ -31,7 +31,7 @@
 // rockx model names
 #define ROCKX_MODEL_FACE_DETECT       "rockx_face_detect"
 #define ROCKX_MODEL_FACE_LANDMARK     "rockx_face_landmark"
-#define ROCKX_MODEL_POSE_BODY         "rockx_pose_body"
+#define ROCKX_MODEL_POSE_BODY         "rockx_pose_body_v2"
 
 // basic task graph
 #define ROCKX_SCENE_SINGLE    "/oem/usr/share/aiserver/camera_nv12_rkrga_300_rknn_graph.json"
