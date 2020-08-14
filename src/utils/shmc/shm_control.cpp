@@ -29,12 +29,12 @@ namespace ShmControl {
 int setNNGeneralInfos(NNData *nnData, void *bufptr, int size) {
     if (!bufptr || size <= 0)
       return -1;
-    
-    auto nn_result = (RTNNVisionInfo *)(bufptr);
-    int type = nn_result[0].type;
+
+    auto nn_result = (RTRknnResult *)(bufptr);
+    int type = nn_result->type;
     int npu_w = 0, npu_h = 0;
-    npu_w = nn_result[0].img_w;
-    npu_h = nn_result[0].img_h;
+    npu_w = nn_result->img_w;
+    npu_h = nn_result->img_h;
     if (npu_w <= 0 || npu_h <= 0) {
         npu_w = 300;
         npu_h = 300;
@@ -48,10 +48,10 @@ int setNNGeneralInfos(NNData *nnData, void *bufptr, int size) {
 void pushFaceDetectInfo(NNData *nnData, void *bufptr, int size) {
     if (!bufptr || !nnData)
       return;
-    auto nn_result_face_detect = (RTNNVisionInfo *)(bufptr);
+    auto nn_result_face_detect = (RTRknnResult *)(bufptr);
     FaceDetect *facedetect;
     for (int i = 0; i < size; i++) {
-        auto face_detect_item = nn_result_face_detect[i].info_face.object;
+        auto face_detect_item = nn_result_face_detect->info_face.object;
         float score = face_detect_item.score;
         if (score < 0.5f) {
             printf("face score %f\n", score);
@@ -74,10 +74,10 @@ void pushFaceDetectInfo(NNData *nnData, void *bufptr, int size) {
 void pushPoseBodyInfo(NNData *nnData, void *bufptr, int size) {
     if (!bufptr || !nnData)
         return;
-    auto nn_result_pose_body = (RTNNVisionInfo *)(bufptr);
+    auto nn_result_pose_body = (RTRknnResult *)(bufptr);
     LandMark *landmark;
     for (uint32_t i = 0; i < size; i++) {
-        auto keyPointsItem = nn_result_pose_body[i].info_body.object;
+        auto keyPointsItem = nn_result_pose_body->info_body.object;
         landmark = nnData->add_landmark();
         for (int j = 0; j < keyPointsItem.count; j++) {
             Points *mPoint = landmark->add_points();
@@ -93,11 +93,11 @@ void pushPoseBodyInfo(NNData *nnData, void *bufptr, int size) {
 void pushLandMarkInfo(NNData *nnData, void *bufptr, int size) {
     if (!bufptr || !nnData)
       return;
-    auto nn_result_land_mark = (RTNNVisionInfo *)(bufptr);
+    auto nn_result_land_mark = (RTRknnResult *)(bufptr);
     LandMark *landmark;
     for (uint32_t i = 0; i < size; i++) {
         landmark = nnData->add_landmark();
-        auto face_landmark_item = nn_result_land_mark[i].info_landmark.object;
+        auto face_landmark_item = nn_result_land_mark->info_landmark.object;
         for (int j = 0; j < face_landmark_item.landmarks_count; j++) {
             Points *mPoint = landmark->add_points();
             mPoint->set_x(face_landmark_item.landmarks[j].x);
@@ -116,44 +116,45 @@ void sendNNDataByRndis(void* nnDataBuffer) {
         return;
 
     NNData nnData;
-    auto   visionArray  = (RTNNVisionInfoArray*)(nnDataBuffer);
+    auto   nnResults    = (RTRknnAnalysisResults*)(nnDataBuffer);
     bool   needUpate    = true;
-    std::string nnName  = ROCKX_MODEL_FACE_DETECT;
+    const char *nnName  = NULL;
 
-    if (!visionArray || !(visionArray->count))
+    if (!nnResults || !(nnResults->count) || (nnResults->results == NULL))
         return;
 
-    RTNNDataType nnType = visionArray->visions[0].type;
-    switch (nnType) {
-      case RT_NN_TYPE_FACE:
-        pushFaceDetectInfo(&nnData, visionArray->visions, visionArray->count);
-        nnData.set_model_type(0);
-        nnName = ROCKX_MODEL_FACE_DETECT;
-        break;
-      case RT_NN_TYPE_BODY:
-        pushPoseBodyInfo(&nnData, visionArray->visions, visionArray->count);
-        nnData.set_model_type(1);
-        nnName = ROCKX_MODEL_POSE_BODY;
-        break;
-      case RT_NN_TYPE_LANDMARK:
-        pushLandMarkInfo(&nnData, visionArray->visions, visionArray->count);
-        nnData.set_model_type(2);
-        nnName = ROCKX_MODEL_FACE_LANDMARK;
-        break;
-      case RT_NN_TYPE_FINGER:
-        pushFingerDetectInfo(&nnData, visionArray->visions, visionArray->count);
-        nnData.set_model_type(3);
-        nnName = ROCKX_MODEL_POSE_FINGER;
-        break;
-      default:
-        break;
+    int32_t size = nnResults->count;
+    for (int i = 0; i < size; i++) {
+        RTRknnResult* result = &nnResults->results[i];
+        RTNNDataType nnType = result->type;
+        switch (nnType) {
+          case RT_NN_TYPE_FACE:
+            pushFaceDetectInfo(&nnData, result, 1);
+            nnName = ROCKX_MODEL_FACE_DETECT;
+            break;
+          case RT_NN_TYPE_BODY:
+            pushPoseBodyInfo(&nnData, result, 1);
+            nnName = ROCKX_MODEL_POSE_BODY;
+            break;
+          case RT_NN_TYPE_LANDMARK:
+            pushLandMarkInfo(&nnData, result, 1);
+            nnName = ROCKX_MODEL_FACE_LANDMARK;
+            break;
+          case RT_NN_TYPE_FINGER:
+            pushFingerDetectInfo(&nnData, result, 1);
+            nnName = ROCKX_MODEL_POSE_FINGER;
+            break;
+          default:
+            needUpate = false;
+            break;
+        }
     }
 
-    if (needUpate == true) {
+    if (needUpate) {
         std::string sendbuf;
-        int res = setNNGeneralInfos(&nnData, visionArray->visions, visionArray->count);
+        int res = setNNGeneralInfos(&nnData, &nnResults->results[0], 1);
         if (res >= 0) {
-            nnData.set_model_name(nnName.c_str());
+            nnData.set_model_name(nnName);
             nnData.SerializeToString(&sendbuf);
             nnData.ParseFromString(sendbuf);
             // printf("RNDIS send nndata(%s) to RNDIS host.\n", model_name);

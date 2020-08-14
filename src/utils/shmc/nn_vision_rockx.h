@@ -86,7 +86,7 @@ typedef enum _RTNNDataType {
     RT_NN_TYPE_AUTHORIZED_STATUS,
 } RTNNDataType;
 
-typedef struct _RTNNVisionInfo {
+typedef struct _RTRknnResult {
     int32_t index;
     int32_t img_w;
     int32_t img_h;
@@ -99,12 +99,12 @@ typedef struct _RTNNVisionInfo {
         RTNNInfoLandmark info_landmark;
         RTNNInfoFinger   info_finger;
     };
-} RTNNVisionInfo;
+} RTRknnResult;
 
-typedef struct _RTNNVisionInfoArray {
+typedef struct _RTRknnAnalysisResults {
     int32_t         count;
-    RTNNVisionInfo* visions;
-} RTNNVisionInfoArray;
+    RTRknnResult    *results;
+} RTRknnAnalysisResults;
 
 #endif  // SRC_RT_MEDIA_AV_FILTER_INCLUDE_RTMEDIAROCKX_H_
 

@@ -50,6 +50,7 @@ namespace aiserver {
 #define PORT_FACE_LANDMART  (4 << 16)
 #define PORT_POSE_BODY      (3 << 16)
 
+pthread_mutex_t gMutex = PTHREAD_MUTEX_INITIALIZER;
 RT_RET nn_data_callback(RTMediaBuffer *buffer, INT32 streamId) {
     RTRknnAnalysisResults *nnReply   = RT_NULL;
     RtMetaData            *extraInfo = RT_NULL;
@@ -57,7 +58,9 @@ RT_RET nn_data_callback(RTMediaBuffer *buffer, INT32 streamId) {
     if (RT_NULL != extraInfo) {
         extraInfo->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
         if (RT_NULL != nnReply) {
-        ShmControl::sendNNDataByRndis((void*)nnReply);
+            pthread_mutex_lock(&gMutex);
+            ShmControl::sendNNDataByRndis((void*)nnReply);
+            pthread_mutex_unlock(&gMutex);
         }
     }
     buffer->release();
