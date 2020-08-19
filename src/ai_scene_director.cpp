@@ -99,30 +99,41 @@ AISceneDirector::~AISceneDirector() {
 }
 
 int32_t AISceneDirector::runNNSingle(const char* uri) {
+    RT_RET err = RT_OK;
     mTaskGraph = new RTTaskGraph("ai_app");
-    mTaskGraph->autoBuild(ROCKX_SCENE_SINGLE);
+    err = mTaskGraph->autoBuild(ROCKX_SCENE_SINGLE);
+    if (RT_OK != err) {
+        RT_LOGE("failed to auto build taskgraph(%s)", ROCKX_SCENE_SINGLE);
+        delete mTaskGraph;
+        mTaskGraph = nullptr;
+        return -1;
+    }
 
     // observer, prepare and start task graph
     RT_LOGE("runNNSingle(%s)", ROCKX_SCENE_SINGLE);
     mTaskGraph->observeOutputStream("single_output", PORT_LINEAR,    nn_data_callback_single);
     mTaskGraph->observeOutputStream("single_output", PORT_POSE_BODY, nn_data_callback_pose_body);
     mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
-    mTaskGraph->invoke(GRAPH_CMD_START, NULL);
+    mTaskGraph->invoke(GRAPH_CMD_START,   NULL);
     return 0;
 }
 
 int32_t AISceneDirector::runNNComplex() {
+    RT_RET err = RT_OK;
     mTaskGraph = new RTTaskGraph("ai_app");
     mTaskGraph->autoBuild(ROCKX_SCENE_COMPLEX);
-
-    RT_LOGE("runNNComplex(%s)", ROCKX_SCENE_COMPLEX);
+    if (RT_OK != err) {
+        RT_LOGE("failed to auto build taskgraph(%s)", ROCKX_SCENE_SINGLE);
+        delete mTaskGraph;
+        mTaskGraph = nullptr;
+        return -1;
+    }
 
     // prepare and start task graph
+    RT_LOGE("runNNComplex(%s)", ROCKX_SCENE_COMPLEX);
     mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
-    mTaskGraph->invoke(GRAPH_CMD_START, NULL);
+    mTaskGraph->invoke(GRAPH_CMD_START,   NULL);
 
-    // this->ctrlSubGraph(ROCKX_MODEL_FACE_DETECT, true);
-    // this->ctrlSubGraph(ROCKX_MODEL_FACE_LANDMARK, true);
     return 0;
 }
 
