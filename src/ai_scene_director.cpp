@@ -197,7 +197,7 @@ int32_t AISceneDirector::ctrlFacePoseBody(bool enable) {
 
 int32_t AISceneDirector::interrupt() {
     if (nullptr != mTaskGraph) {
-        mTaskGraph->waitUntilDone();
+        mTaskGraph->sendInterrupt("signal");
     }
     return 0;
 }

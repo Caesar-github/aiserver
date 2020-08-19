@@ -45,6 +45,7 @@ void DBusServer::stop(void) {
     DBus::default_dispatcher->leave();
     service_thread_->set_status(kThreadStopping);
     service_thread_->join();
+
     LOG_DEBUG("dbus server stop\n");
 }
 

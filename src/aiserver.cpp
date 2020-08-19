@@ -32,7 +32,7 @@
 #endif
 #define LOG_TAG "aiserver.cpp"
 
-#define USE_ROCKIT 1
+#define HAVE_SIGNAL_PROC 1
 
 typedef struct _AIServerCtx {
     // minilog flags
@@ -98,6 +98,10 @@ AIServer::~AIServer() {
     mDbusServer.reset();
 }
 
+void AIServer::interrupt() {
+    mAIDirector->interrupt();
+}
+
 void AIServer::waitUntilDone() {
     mAIDirector->waitUntilDone();
 }
@@ -105,12 +109,16 @@ void AIServer::waitUntilDone() {
 } // namespace aiserver
 } // namespace rockchip
 
-static void sigterm_handler(int sig) {
-    fprintf(stderr, "signal %d\n", sig);
-    _ai_server_ctx.mQuit = true;
-}
-
 using namespace rockchip::aiserver;
+
+static AIServer* _ai_server_instance = nullptr;
+static void sigterm_handler(int sig) {
+    RT_LOGD("quit signal(%d) is caught.", sig);
+    _ai_server_ctx.mQuit = true;
+    if (nullptr != _ai_server_instance) {
+        _ai_server_instance->interrupt();
+    }
+}
 
 int main(int argc, char *argv[]) {
     _ai_server_ctx.mQuit             = false;
@@ -126,24 +134,26 @@ int main(int argc, char *argv[]) {
     //                   argv[0], "1.0.0");
 
     // install signal handlers.
-#if USE_ROCKIT
-    // signal(SIGQUIT, sigterm_handler);
-    // signal(SIGINT,  sigterm_handler);
-    // signal(SIGTERM, sigterm_handler);
-    // signal(SIGXCPU, sigterm_handler);
-    // signal(SIGPIPE, SIG_IGN);
+#if HAVE_SIGNAL_PROC
+    signal(SIGINT,  sigterm_handler);  // SIGINT  = 2
+    signal(SIGQUIT, sigterm_handler);  // SIGQUIT = 3
+    signal(SIGTERM, sigterm_handler);  // SIGTERM = 15
+    signal(SIGXCPU, sigterm_handler);  // SIGXCPU = 24
+    signal(SIGPIPE, SIG_IGN);          // SIGPIPE = 13 is ingnored
 #endif
 
     // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, argv[0], "1.0.0");
-    std::unique_ptr<AIServer> aiserver = std::unique_ptr<AIServer>(new AIServer());
-    RT_LOGD("new AIServer() done!");
+    _ai_server_instance = new AIServer();
+    RT_LOGD("create aiserver instance done");
 
     // rt_mem_record_reset();
-    aiserver->setupTaskGraph();
+    _ai_server_instance->setupTaskGraph();
     RT_LOGD("aiserver->setupTaskGraph(); done!");
 
-    aiserver->waitUntilDone();
-    aiserver.reset();
+    _ai_server_instance->waitUntilDone();
+    RT_LOGD("aiserver->waitUntilDone(); done!");
+    delete _ai_server_instance;
+    _ai_server_instance = nullptr;
 
     rt_mem_record_dump();
     return 0;

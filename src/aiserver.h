@@ -33,6 +33,7 @@ class AIServer {
  public:
     void setupTaskGraph();
     void waitUntilDone();
+    void interrupt();
 
  private:
     std::unique_ptr<DBusServer>      mDbusServer;
