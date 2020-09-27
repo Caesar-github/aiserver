@@ -1,28 +1,15 @@
-/*
- * Copyright 2019 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * author: martin.cheng@rock-chips.com
- *   date: 2020/06/09
- * module: task graph for generic ai scene.
- */
+// Copyright 2019 Fuzhou Rockchip Electronics Co., Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 #ifndef _RK_AI_SCENE_DIRECTOR_H_
 #define _RK_AI_SCENE_DIRECTOR_H_
 
 #include "dbus_graph_control.h"
-#include "rockit/RTTaskGraph.h"
+#include "ai_feature_retriver.h"
+#include "ai_task_manager.h"
+#include "shmc/shm_control_uvc.h"
+#include "rockit/RTUVCGraph.h"
 
 namespace rockchip {
 namespace aiserver {
@@ -38,46 +25,58 @@ typedef enum _RockxTaskMode {
  * 2. output NN vision result to SHMC(ipc)
  * 3. provide a minimalist interface to aiserver
  */
-class AISceneDirector {
+class AISceneDirector : public RTGraphListener {
  public:
     AISceneDirector();
     ~AISceneDirector();
 
  public:
-    // control ai scene
-    int32_t runNNSingle(const char* nnName);
-    int32_t runNNComplex();
-
- public:
-    // control task graph
-    int32_t ctrlSubGraph(const char* nnName, bool enable);
+    int32_t setup();
+    int32_t prepareUVCGraph();
     int32_t interrupt();
     int32_t waitUntilDone();
 
- private:
-    int32_t ctrlFaceDectect(bool enable);
-    int32_t ctrlFaceLandmark(bool enable);
-    int32_t ctrlFacePoseBody(bool enable);
-
- private:
-    RTTaskGraph *mTaskGraph;
-    int32_t      mEnabledFaceDetect   = 0;
-    int32_t      mEnabledFaceLandmark = 0;
-    int32_t      mEnabledPoseBody     = 0;
-};
-
-class RTAIGraphListener : public RTGraphListener {
  public:
-    RTAIGraphListener(AISceneDirector *director) { mDirector = director; }
-    virtual ~RTAIGraphListener() {}
-    virtual void CtrlSubGraph(const char* nnName, int32_t enable);
+    // overide RTGraphListener control task graph
+    virtual int32_t start(const std::string &appName);
+    virtual int32_t stop(const std::string &appName);
+    virtual int32_t observeGraphOutput(const std::string &appName, const int32_t &enable);
+
+    virtual int32_t enableEPTZ(const int32_t &enabled);
+    virtual int32_t setZoom(const double &val);
+
+    virtual int32_t enableAIAlgorithm(const std::string &type);
+    virtual int32_t disableAIAlgorithm(const std::string &type);
+
+    virtual int32_t openAIMatting();
+    virtual int32_t closeAIMatting();
+
+    virtual int32_t invoke(const std::string &appName, const std::string &actionName, void *params);
+    virtual int32_t ctrlSubGraph(const char* nnName, int32_t enable);
+
  private:
-    AISceneDirector *mDirector;
+    int32_t invokeFeature(const std::string &actionName, void *params);
+    int32_t invokeUVC(const std::string &actionName, void *params);
+
+    RT_RET  nn_data_output_callback(RTMediaBuffer *buffer);
+    RT_RET  ai_matting_output_callback(RTMediaBuffer *buffer);
+    RT_RET  uvc_data_output_callback(RTMediaBuffer *buffer);
+
+ public:
+    ShmUVCController *mUVCController;
+    AITaskManager    *mAITaskManager;
+
+ private:
+    std::mutex   mOpMutex;
+    RTUVCGraph  *mUVCGraph;
+    AIFeatureRetriver *mAIFeatureRetriver;
+    int32_t      mUVCGraphRef         = 0;
+    int32_t      mEnableUVC           = 0;
+    int32_t      mEnableNN            = 0;
 };
 
 } // namespace aiserver
 } // namespace rockchip
-
 
 
 #endif // _RK_AI_SCENE_DIRECTOR_H_

@@ -18,11 +18,6 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG)
 endif()
 
-option(USE_ROCKX  "enbale rockx" ON)
-if (${USE_ROCKX})
-    add_definitions(-DHAVE_ROCKX)
-endif()
-
 add_definitions(-DDBUS_HAS_RECURSIVE_MUTEX)
 
 add_definitions(-fPIC)

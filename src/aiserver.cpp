@@ -1,36 +1,19 @@
-/*
- * Copyright 2020 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * author: modified by <martin.cheng@rock-chips.com>
- *   date: 2020-05-23
- *  title: ai server with task graph of rockit
- */
+// Copyright 2019 Fuzhou Rockchip Electronics Co., Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
-#include <getopt.h>
-#include <memory>
-#include <logger/log.h>
+#include <assert.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-// headers from this project.
 #include "aiserver.h"
+#include "getopt.h"
+#include "logger/log.h"
 #include "ai_scene_director.h"
 #include "nn_vision_rockx.h"
-
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "aiserver.cpp"
 
 #define HAVE_SIGNAL_PROC 1
 
@@ -39,19 +22,16 @@ typedef struct _AIServerCtx {
     int  mFlagMinilog;
     int  mFlagMinilogBacktrace;
     int  mFlagMinilogLevel;
-    int  mFlagEncoderDebug;
     // dbus flags
     int  mFlagDBusServer;
     int  mFlagDBusDbServer;
     int  mFlagDBusConn;
-    // task graph
-    int  mTaskMode;
     // server flags
     bool mQuit;
     std::string mConfigUri;
 } AIServerCtx;
 
-static AIServerCtx _ai_server_ctx;
+static AIServerCtx mAIServerCtx;
 static void        parse_args(int argc, char **argv);
 
 namespace rockchip {
@@ -59,46 +39,36 @@ namespace aiserver {
 
 AIServer::AIServer() {
     mAIDirector.reset(nullptr);
-    mGraphListener.reset(nullptr);
     mDbusServer.reset(nullptr);
 }
 
 void AIServer::setupTaskGraph() {
     mAIDirector.reset(new AISceneDirector());
-    mGraphListener.reset(new RTAIGraphListener(mAIDirector.get()));
 
-    RT_LOGD("AIServer: ctx.mFlagDBusServer   = %d", _ai_server_ctx.mFlagDBusServer);
-    RT_LOGD("AIServer: ctx.mFlagDBusDbServer = %d", _ai_server_ctx.mFlagDBusDbServer);
-    RT_LOGD("AIServer: ctx.mTaskMode         = %d", _ai_server_ctx.mTaskMode);
-    if (_ai_server_ctx.mFlagDBusServer) {
-        mDbusServer.reset(new DBusServer(_ai_server_ctx.mFlagDBusConn, _ai_server_ctx.mFlagDBusDbServer));
+    LOG_INFO("AIServer: mFlagDBusServer   = %d\n", mAIServerCtx.mFlagDBusServer);
+    LOG_INFO("AIServer: mFlagDBusDbServer = %d\n", mAIServerCtx.mFlagDBusDbServer);
+    if (mAIServerCtx.mFlagDBusServer) {
+        mDbusServer.reset(new DBusServer(mAIServerCtx.mFlagDBusConn, mAIServerCtx.mFlagDBusDbServer));
         assert(mDbusServer);
-        mDbusServer->RegisterMediaControl(mGraphListener.get());
+        mDbusServer->RegisterMediaControl(mAIDirector.get());
         mDbusServer->start();
+        LOG_INFO("AIServer: RegisterMediaControl start ok\n");
     }
 
-    switch (_ai_server_ctx.mTaskMode) {
-      case ROCKX_TASK_MODE_SINGLE:
-        mAIDirector->runNNSingle("single_model");
-        break;
-      case ROCKX_TASK_MODE_COMPLEX:
-        mAIDirector->runNNComplex();
-        break;
-      default:
-        break;
-    }
+    mAIDirector->setup();
 }
 
 AIServer::~AIServer() {
-    if ((_ai_server_ctx.mFlagDBusServer) && (nullptr != mDbusServer)) {
+    if ((mAIServerCtx.mFlagDBusServer) && (nullptr != mDbusServer)) {
         mDbusServer->stop();
     }
-    mGraphListener.reset();
     mAIDirector.reset();
     mDbusServer.reset();
 }
 
 void AIServer::interrupt() {
+    mAIDirector->stop(RT_APP_NN);
+    mAIDirector->stop(RT_APP_UVC);
     mAIDirector->interrupt();
 }
 
@@ -109,51 +79,59 @@ void AIServer::waitUntilDone() {
 } // namespace aiserver
 } // namespace rockchip
 
-using namespace rockchip::aiserver;
 
-static AIServer* _ai_server_instance = nullptr;
+//=======================================================================//
+//=========================AIServer Main Program=========================//
+//=======================================================================//
+using namespace rockchip::aiserver;
+static AIServer* mAIServerInstance = nullptr;
+
 static void sigterm_handler(int sig) {
-    RT_LOGD("quit signal(%d) is caught.", sig);
-    _ai_server_ctx.mQuit = true;
-    if (nullptr != _ai_server_instance) {
-        _ai_server_instance->interrupt();
+    LOG_WARN("quit signal(%d) is caught\n", sig);
+    mAIServerCtx.mQuit = true;
+    if (nullptr != mAIServerInstance) {
+        mAIServerInstance->interrupt();
     }
 }
 
 int main(int argc, char *argv[]) {
-    _ai_server_ctx.mQuit             = false;
-    _ai_server_ctx.mFlagDBusServer   = true;
-    _ai_server_ctx.mFlagDBusDbServer = false;
-    _ai_server_ctx.mFlagDBusConn     = false;
+    mAIServerCtx.mQuit             = false;
+    mAIServerCtx.mFlagDBusServer   = true;
+    mAIServerCtx.mFlagDBusDbServer = false;
+    mAIServerCtx.mFlagDBusConn     = false;
 
     parse_args(argc, argv);
 
-    RT_LOGD("parse_args done!");
+    LOG_INFO("parse_args done!\n");
 
-    // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace,
+    // __minilog_log_init(argv[0], NULL, false, mAIServerCtx.mFlagMinilogBacktrace,
     //                   argv[0], "1.0.0");
 
     // install signal handlers.
 #if HAVE_SIGNAL_PROC
     signal(SIGINT,  sigterm_handler);  // SIGINT  = 2
-    signal(SIGQUIT, sigterm_handler);  // SIGQUIT = 3
+    // signal(SIGQUIT, sigterm_handler);  // SIGQUIT = 3
     signal(SIGTERM, sigterm_handler);  // SIGTERM = 15
     signal(SIGXCPU, sigterm_handler);  // SIGXCPU = 24
     signal(SIGPIPE, SIG_IGN);          // SIGPIPE = 13 is ingnored
 #endif
 
-    // __minilog_log_init(argv[0], NULL, false, _ai_server_ctx.mFlagMinilogBacktrace, argv[0], "1.0.0");
-    _ai_server_instance = new AIServer();
-    RT_LOGD("create aiserver instance done");
+    mAIServerInstance = new AIServer();
+    LOG_INFO("create aiserver instance done\n");
 
     // rt_mem_record_reset();
-    _ai_server_instance->setupTaskGraph();
-    RT_LOGD("aiserver->setupTaskGraph(); done!");
+    mAIServerInstance->setupTaskGraph();
+    LOG_INFO("aiserver->setupTaskGraph(); done\n");
 
-    _ai_server_instance->waitUntilDone();
-    RT_LOGD("aiserver->waitUntilDone(); done!");
-    delete _ai_server_instance;
-    _ai_server_instance = nullptr;
+    while (!mAIServerCtx.mQuit) {
+        usleep(2000000ll);
+    }
+
+    mAIServerInstance->waitUntilDone();
+    LOG_INFO("aiserver->waitUntilDone(); done\n");
+
+    delete mAIServerInstance;
+    mAIServerInstance = nullptr;
 
     rt_mem_record_dump();
     return 0;
@@ -164,7 +142,6 @@ static void usage_tip(FILE *fp, int argc, char **argv) {
               "Version %s\n"
               "Options:\n"
               "-c | --config      AIServer confg file \n"
-              "-m | --mode        0:single,  1:complex \n"
               "-o | --dbus_conn   0:system,  1:session \n"
               "-d | --dbus_db     0:disable, 1:enable \n"
               "-s | --dbus_server 0:disable, 1:enable \n"
@@ -173,10 +150,9 @@ static void usage_tip(FILE *fp, int argc, char **argv) {
           argv[0], "V1.1");
 }
 
-static const char short_options[] = "c:modsh";
+static const char short_options[] = "c:odsh";
 static const struct option long_options[] = {
     {"ai_config",   required_argument, NULL, 'c'},
-    {"ai_mode",     optional_argument, 0,    'm'},
     {"dbus_conn",   optional_argument, 0,    'o'},
     {"dbus_db",     optional_argument, 0,    'd'},
     {"dbus_server", optional_argument, 0,    's'},
@@ -192,19 +168,16 @@ static void parse_args(int argc, char **argv) {
         case 0: /* getopt_long() flag */
           break;
         case 'c':
-          _ai_server_ctx.mConfigUri = optarg;
-          break;
-        case 'm':
-          _ai_server_ctx.mTaskMode  = atoi(argv[optind]);
+          mAIServerCtx.mConfigUri = optarg;
           break;
         case 'o':
-          _ai_server_ctx.mFlagDBusConn  = atoi(argv[optind]);
+          mAIServerCtx.mFlagDBusConn  = atoi(argv[optind]);
           break;
         case 'd':
-          _ai_server_ctx.mFlagDBusDbServer = atoi(argv[optind]);
+          mAIServerCtx.mFlagDBusDbServer = atoi(argv[optind]);
           break;
         case 's':
-          _ai_server_ctx.mFlagDBusServer = atoi(argv[optind]);
+          mAIServerCtx.mFlagDBusServer = atoi(argv[optind]);
           break;
         case 'h':
           usage_tip(stdout, argc, argv);

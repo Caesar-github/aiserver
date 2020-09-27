@@ -11,15 +11,10 @@
 
 #include "dbus_media_control.h"
 
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "dbus_media_ctl"
-
 namespace rockchip {
 namespace aiserver {
 
-int DBusMediaControl::listenMediaCtrl(DBus::Connection &connection, RTGraphListener* listener) {
+int32_t DBusMediaControl::listenMediaCtrl(DBus::Connection &connection, RTGraphListener* listener) {
     camera_controls_  = std::make_shared<DBusCameraControl>(connection);
     encoder_controls_ = std::make_shared<DBusEncoderControl>(connection);
     graph_controls_   = std::make_shared<DBusGraphControl>(connection, listener);

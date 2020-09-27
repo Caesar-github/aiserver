@@ -16,7 +16,7 @@
 #endif
 
 static int minilog_enable    = 1;
-static int minilog_log_level = 1;
+static int minilog_log_level = 2;
 
 namespace rockchip {
 namespace aiserver {

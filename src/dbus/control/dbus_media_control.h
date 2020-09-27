@@ -23,7 +23,7 @@ class DBusMediaControl {
  public:
     DBusMediaControl(){};
     virtual ~DBusMediaControl() {}
-    int listenMediaCtrl(DBus::Connection &connection, RTGraphListener* listener);
+    int32_t listenMediaCtrl(DBus::Connection &connection, RTGraphListener* listener);
 
 private:
    std::shared_ptr<DBusEncoderControl> encoder_controls_;

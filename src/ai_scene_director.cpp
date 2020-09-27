@@ -1,218 +1,304 @@
-/*
- * Copyright 2019 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * author: martin.cheng@rock-chips.com
- *   date: 2020/06/09
- * module: task graph for generic ai scene.
- */
+// Copyright 2019 Fuzhou Rockchip Electronics Co., Ltd. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
 #include "ai_scene_director.h"
+#include "logger/log.h"
 
-#include "shmc/shm_control.h"
-
-// task graph from rockit.
-#include "rockit/RTTaskGraph.h"
+#include "rockit/RTUVCGraph.h"
 #include "rockit/RTMediaBuffer.h"
-#include "rockit/RTMediaMetaKeys.h"
-#include "rockit/RTMediaRockx.h"
 
-// rockx model names
-#define ROCKX_MODEL_FACE_DETECT       "rockx_face_detect"
-#define ROCKX_MODEL_FACE_LANDMARK     "rockx_face_landmark"
-#define ROCKX_MODEL_POSE_BODY         "rockx_pose_body_v2"
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
 
-// basic task graph
-#define ROCKX_SCENE_SINGLE    "/oem/usr/share/aiserver/camera_nv12_rkrga_300_rknn_graph.json"
-#define ROCKX_SCENE_COMPLEX   "/oem/usr/share/aiserver/camera_nv12_rkrga_300.json"
-
-// task graph for subgraph
-#define ROCKX_SUBGRAPH_FACE_DECTECT    "/oem/usr/share/aiserver/rknn_facedetect.json"
-#define ROCKX_SUBGRAPH_POSE_BODY       "/oem/usr/share/aiserver/rknn_posebody.json"
-#define ROCKX_SUBGRAPH_FACE_LANDMARK   "/oem/usr/share/aiserver/rknn_face_landmark.json"
+#define LOG_TAG "AISceneDirector"
 
 namespace rockchip {
 namespace aiserver {
 
-#define PORT_LINEAR         (2 << 16)
-#define PORT_FACE_DETECT    (2 << 16)
-#define PORT_FACE_LANDMART  (4 << 16)
-#define PORT_POSE_BODY      (3 << 16)
-
-pthread_mutex_t gMutex = PTHREAD_MUTEX_INITIALIZER;
-RT_RET nn_data_callback(RTMediaBuffer *buffer, INT32 streamId) {
-    RTRknnAnalysisResults *nnReply   = RT_NULL;
-    RtMetaData            *extraInfo = RT_NULL;
-    extraInfo = buffer->extraMeta(streamId);
-    if (RT_NULL != extraInfo) {
-        extraInfo->findPointer(ROCKX_OUT_RESULT, reinterpret_cast<RT_PTR *>(&nnReply));
-        if (RT_NULL != nnReply) {
-            pthread_mutex_lock(&gMutex);
-            ShmControl::sendNNDataByRndis((void*)nnReply);
-            pthread_mutex_unlock(&gMutex);
-        }
+// send NN data to SDS
+RT_RET AISceneDirector::nn_data_output_callback(RTMediaBuffer *buffer) {
+#if UVC_DYNAMIC_DEBUG
+    if (!access(UVC_DYNAMIC_DEBUG_IPC_BUFFER_CHECK, 0)) {
+        LOG_ERROR("send nn data buffer %p\n", buffer);
     }
-    buffer->release();
+#endif
+    mAITaskManager->processAIData(buffer);
     return RT_OK;
 }
 
-RT_RET nn_data_callback_single(RTMediaBuffer *buffer) {
-    return nn_data_callback(buffer, PORT_LINEAR);
+// send NN data to SDS
+RT_RET AISceneDirector::ai_matting_output_callback(RTMediaBuffer *buffer) {
+    mAITaskManager->processAIMatting(buffer);
+    return RT_OK;
 }
 
-RT_RET nn_data_callback_face_detect(RTMediaBuffer *buffer) {
-    return nn_data_callback(buffer, PORT_FACE_DETECT);
-}
-
-RT_RET nn_data_callback_face_landmark(RTMediaBuffer *buffer) {
-    return nn_data_callback(buffer, PORT_FACE_LANDMART);
-}
-
-RT_RET nn_data_callback_pose_body(RTMediaBuffer *buffer) {
-    return nn_data_callback(buffer, PORT_POSE_BODY);
+// send MediaBuffer to UVC_APP
+RT_RET AISceneDirector::uvc_data_output_callback(RTMediaBuffer *buffer) {
+    LOG_DEBUG("callback uvc buffer[%p](id=%d,fd=%d,size=%d,len=%d)\n", 
+         buffer, buffer->getUniqueID(), buffer->getFd(), buffer->getSize(), buffer->getLength());
+    mUVCController->sendUVCBuffer(buffer);
+    return RT_OK;
 }
 
 AISceneDirector::AISceneDirector() {
-    // shmc cell: shared memory containers for high performance server
-    queue_w_.InitForWrite(kShmKey, kQueueBufSize);
-    ShmControl::initialize();
+    mAITaskManager = new AITaskManager();
+    mAIFeatureRetriver = new AIFeatureRetriver();
+    mUVCController = new ShmUVCController();
+    mUVCController->setControlListener(this);
+    mUVCController->startRecvMessage();
 
-    mTaskGraph = nullptr;
+    mUVCGraph = nullptr;
 }
 
 AISceneDirector::~AISceneDirector() {
-    if (nullptr != mTaskGraph) {
-        delete mTaskGraph;
-        mTaskGraph = nullptr;
+    if (nullptr != mUVCGraph) {
+        delete mUVCGraph;
+        mUVCGraph = nullptr;
+    }
+
+    if (mUVCController != nullptr) {
+        mUVCController->stopRecvMessage();
+        delete mUVCController;
+        mUVCController = nullptr;
+    }
+
+    if (mAIFeatureRetriver != nullptr) {
+        mAIFeatureRetriver->stop();
+        delete mAIFeatureRetriver;
+        mAIFeatureRetriver = nullptr;
+    }
+
+    if (mAITaskManager != nullptr) {
+        delete mAITaskManager;
+        mAITaskManager = nullptr;
     }
 }
 
-int32_t AISceneDirector::runNNSingle(const char* uri) {
-    RT_RET err = RT_OK;
-    mTaskGraph = new RTTaskGraph("ai_app");
-    err = mTaskGraph->autoBuild(ROCKX_SCENE_SINGLE);
-    if (RT_OK != err) {
-        RT_LOGE("failed to auto build taskgraph(%s)", ROCKX_SCENE_SINGLE);
-        delete mTaskGraph;
-        mTaskGraph = nullptr;
-        return -1;
-    }
+int32_t AISceneDirector::setup() {
+    prepareUVCGraph();
 
-    // observer, prepare and start task graph
-    RT_LOGE("runNNSingle(%s)", ROCKX_SCENE_SINGLE);
-    mTaskGraph->observeOutputStream("single_output", PORT_LINEAR,    nn_data_callback_single);
-    mTaskGraph->observeOutputStream("single_output", PORT_POSE_BODY, nn_data_callback_pose_body);
-    mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
-    mTaskGraph->invoke(GRAPH_CMD_START,   NULL);
+#if PRELOAD_HANDLE_AI
+    RtMetaData meta;
+    meta.setCString("preload_handle", "scene_nn");
+    LOG_INFO("preload scene nn resource in\n");
+    mUVCGraph->preload(&meta);
+    LOG_INFO("preload scene nn resource ok\n");
+#endif
+
+#if HAVE_STASTERIA
+    mAIFeatureRetriver->setup(mAITaskManager);
+    mAIFeatureRetriver->start();
+#endif
     return 0;
 }
 
-int32_t AISceneDirector::runNNComplex() {
-    RT_RET err = RT_OK;
-    mTaskGraph = new RTTaskGraph("ai_app");
-    mTaskGraph->autoBuild(ROCKX_SCENE_COMPLEX);
-    if (RT_OK != err) {
-        RT_LOGE("failed to auto build taskgraph(%s)", ROCKX_SCENE_SINGLE);
-        delete mTaskGraph;
-        mTaskGraph = nullptr;
-        return -1;
+int32_t AISceneDirector::prepareUVCGraph() {
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (mUVCGraph == NULL) {
+#ifdef HAVE_STASTERIA
+        mUVCGraph = new RTUVCGraph("st_asteria");
+#else
+        mUVCGraph = new RTUVCGraph("rockx");
+#endif
+        mUVCGraph->observeUVCOutputStream(std::bind(&AISceneDirector::uvc_data_output_callback, this, std::placeholders::_1));
+        mUVCGraph->observeNNOutputStream(std::bind(&AISceneDirector::nn_data_output_callback, this, std::placeholders::_1));
+        mUVCGraph->observeMattingOutputStream(std::bind(&AISceneDirector::ai_matting_output_callback, this, std::placeholders::_1));
+        mUVCGraph->prepare();
+        mUVCGraph->start();
     }
 
-    // prepare and start task graph
-    RT_LOGE("runNNComplex(%s)", ROCKX_SCENE_COMPLEX);
-    mTaskGraph->invoke(GRAPH_CMD_PREPARE, NULL);
-    mTaskGraph->invoke(GRAPH_CMD_START,   NULL);
-
-    return 0;
-}
-
-int32_t AISceneDirector::ctrlSubGraph(const char* nnName, bool enable) {
-    if ((nullptr == mTaskGraph) || (nullptr == nnName)) {
-        return -1;
-    }
-
-    RT_LOGD("nnName %s, enable: %d", nnName, enable);
-    if (!strcmp(ROCKX_MODEL_FACE_DETECT, nnName)) {
-        if (mEnabledFaceDetect != enable) {
-            ctrlFaceDectect(enable);
-            mEnabledFaceDetect = enable;
-        }
-    } else if (!strcmp(ROCKX_MODEL_FACE_LANDMARK, nnName)) {
-        if (mEnabledFaceLandmark != enable) {
-            ctrlFaceLandmark(enable);
-            mEnabledFaceLandmark = enable;
-        }
-    } else if (!strcmp(ROCKX_MODEL_POSE_BODY, nnName)) {
-        if (mEnabledPoseBody != enable) {
-            ctrlFacePoseBody(enable);
-            mEnabledPoseBody = enable;
-        }
-    } else {
-        RT_LOGE("unsupport nn data: %s", nnName);
-    }
-
-    return 0;
-}
-
-int32_t AISceneDirector::ctrlFaceDectect(bool enable) {
-    if (enable) {
-        mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_FACE_DECTECT);
-        mTaskGraph->observeOutputStream("nn:facedetect", PORT_FACE_DETECT, nn_data_callback_face_detect);
-    } else {
-        mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_FACE_DECTECT);
-    }
-    return 0;
-}
-
-int32_t AISceneDirector::ctrlFaceLandmark(bool enable) {
-    if (enable) {
-        mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_FACE_LANDMARK);
-        mTaskGraph->observeOutputStream("nn:faceLandmark", PORT_FACE_LANDMART, nn_data_callback_face_landmark);
-    } else {
-        mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_FACE_LANDMARK);
-    }
-    return 0;
-}
-
-int32_t AISceneDirector::ctrlFacePoseBody(bool enable) {
-    if (enable) {
-        mTaskGraph->addSubGraph(ROCKX_SUBGRAPH_POSE_BODY);
-        mTaskGraph->observeOutputStream("nn:posebody", PORT_POSE_BODY, nn_data_callback_pose_body);
-    } else {
-        mTaskGraph->removeSubGraph(ROCKX_SUBGRAPH_POSE_BODY);
-    }
     return 0;
 }
 
 int32_t AISceneDirector::interrupt() {
-    if (nullptr != mTaskGraph) {
-        mTaskGraph->sendInterrupt("signal");
+    LOG_INFO("interrupt uvc graph(ref=%d)\n", mUVCGraphRef);
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (nullptr != mUVCGraph && mUVCGraphRef == 0) {
+        LOG_INFO("stop uvc graph(ref=%d)\n", mUVCGraphRef);
+        mUVCGraph->stop();
+        LOG_INFO("release uvc graph\n");
+        delete mUVCGraph;
+        mUVCGraph = nullptr;
     }
+
+    if (nullptr != mAIFeatureRetriver) {
+        mAIFeatureRetriver->stop();
+    }
+
     return 0;
 }
 
 int32_t AISceneDirector::waitUntilDone() {
-    if (nullptr != mTaskGraph) {
-        mTaskGraph->waitUntilDone();
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->waitUntilDone();
     }
+
     return 0;
 }
 
-void RTAIGraphListener::CtrlSubGraph(const char* nnName, int32_t enable) {
-    if (nullptr != mDirector) {
-        mDirector->ctrlSubGraph(nnName, enable);
+int32_t AISceneDirector::start(const std::string &appName) {
+    LOG_INFO("start app(%s)\n", appName.c_str());
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (appName == RT_APP_UVC) {
+        if (!mEnableUVC) {
+            LOG_INFO("start app -> open uvc in\n");
+            mUVCGraph->openUVC();
+            LOG_INFO("start app -> open uvc ok\n");
+            mUVCGraphRef++;
+            mEnableUVC = 1;
+        }
+    } else if (appName == RT_APP_NN) {
+        if (!mEnableNN) {
+            // mUVCGraph->openAI();
+            mUVCGraphRef++;
+            mEnableNN = 1;
+        }
+    } else {
+        LOG_ERROR("start for unknown app(%s)\n", appName.c_str());
     }
+
+    return 0;
+}
+
+int32_t AISceneDirector::stop(const std::string &appName) {
+    LOG_INFO("stop app(%s)\n", appName.c_str());
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (appName == RT_APP_UVC) {
+        if (mEnableUVC) {
+            LOG_INFO("stop app -> close uvc in\n");
+            mUVCGraph->closeUVC();
+            LOG_INFO("stop app -> close uvc ok\n");
+            mUVCGraphRef--;
+            mEnableUVC = 0;
+        }
+    } else if (appName == RT_APP_NN) {
+        if (mEnableNN) {
+            // mUVCGraph->closeAI();
+            mUVCGraphRef--;
+            mEnableNN = 0;
+        }
+    } else {
+        LOG_ERROR("stop for unknown app(%s)\n", appName.c_str());
+    }
+    // interrupt();
+
+    return 0;
+}
+
+int32_t AISceneDirector::observeGraphOutput(const std::string &appName, const int32_t &enable) {
+    return 0;
+}
+
+int32_t AISceneDirector::enableEPTZ(const int32_t &enabled) {
+    LOG_INFO("enableEPTZ(%d)\n", enabled);
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->enableEPTZ(enabled);
+    }
+    LOG_INFO("enableEPTZ ok\n");
+    return 0;
+}
+int32_t AISceneDirector::setZoom(const double &val) {
+    LOG_INFO("setZoom(%f)\n", val);
+    float zoomVal = (float)val;
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->setZoom(zoomVal);
+    }
+    LOG_INFO("setZoom ok\n");
+    return 0;
+}
+
+int32_t AISceneDirector::enableAIAlgorithm(const std::string &type) {
+    LOG_INFO("enableAIAlgorithm(%s)\n", type.c_str());
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->enableAIAlgorithm(type);
+    }
+    LOG_INFO("enableAIAlgorithm ok\n");
+    return 0;
+}
+
+int32_t AISceneDirector::disableAIAlgorithm(const std::string &type) {
+    LOG_INFO("disableAIAlgorithm(%s)\n", type.c_str());
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->disableAIAlgorithm(type);
+    }
+    LOG_INFO("disableAIAlgorithm ok\n");
+    return 0;
+}
+
+int32_t AISceneDirector::openAIMatting() {
+    LOG_INFO("openAIMatting in\n");
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->openAIMatting();
+    }
+    LOG_INFO("openAIMatting ok\n");
+    return 0;
+}
+
+int32_t AISceneDirector::closeAIMatting() {
+    LOG_INFO("closeAIMatting in\n");
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->closeAIMatting();
+    }
+    LOG_INFO("closeAIMatting ok\n");
+    return 0;
+}
+
+
+int32_t AISceneDirector::invoke(const std::string &appName, const std::string &actionName, void *params) {
+    LOG_INFO("invoke(app=%s, action=%s)\n", appName.c_str(), actionName.c_str());
+    if (appName == RT_APP_UVC) {
+        return invokeUVC(actionName, params);
+    } else if (appName == RT_APP_AI_FEATURE) {
+        return invokeFeature(actionName, params);
+    } else {
+        LOG_ERROR("unsupport app(%s)\n", appName.c_str());
+        return -1;
+    }
+
+    return 0;
+}
+
+int32_t AISceneDirector::invokeFeature(const std::string &actionName, void *params) {
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (nullptr == mAIFeatureRetriver) {
+        LOG_ERROR("ai feature retriver not existed\n");
+        return -1;
+    }
+
+    if (actionName == RT_ACTION_RETRIVE_FEATURE) {
+        mAIFeatureRetriver->runTaskOnce(params);
+        LOG_INFO("retrive ai feature ok\n");
+        return 0;
+    }
+
+    LOG_ERROR("unsupport action(%s)\n", actionName.c_str());
+    return -1;
+}
+
+int32_t AISceneDirector::invokeUVC(const std::string &actionName, void *params) {
+    prepareUVCGraph();
+
+    std::lock_guard<std::mutex> lock(mOpMutex);
+    if (nullptr == mUVCGraph) {
+        LOG_ERROR("uvc graph not existed\n");
+        return -1;
+    }
+
+    if (actionName == RT_ACTION_CONFIG_CAMERA) {
+        RtMetaData *cameraParams = reinterpret_cast<RtMetaData *>(params);
+        mUVCGraph->updateCameraParams(cameraParams);
+        LOG_INFO("updateCameraParams ok\n");
+        return 0;
+    }
+
+    LOG_ERROR("unsupport action(%s)\n", actionName.c_str());
+    return -1;
+}
+
+int32_t AISceneDirector::ctrlSubGraph(const char* nnName, int32_t enable) {
+    return 0;
 }
 
 } // namespace aiserver

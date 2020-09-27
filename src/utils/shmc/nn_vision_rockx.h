@@ -106,5 +106,22 @@ typedef struct _RTRknnAnalysisResults {
     RTRknnResult    *results;
 } RTRknnAnalysisResults;
 
+typedef struct {
+    int32_t dataSize;
+    int32_t width;
+    int32_t height;
+    int32_t format;
+    int32_t angle;
+    int32_t mirror;
+    int32_t faceID;
+    unsigned char *feature;
+    int32_t featureLen;
+} RTKKMattingFaceInfo;
+
+typedef struct {
+    int32_t faceCount;
+    RTKKMattingFaceInfo *faceInfo;
+} RTKKAIMattingResult;
+
 #endif  // SRC_RT_MEDIA_AV_FILTER_INCLUDE_RTMEDIAROCKX_H_
 

@@ -2,25 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef _RK_MEDIA_SERVER_H_
-#define _RK_MEIDA_SERVER_H_
-
-#include <assert.h>
-#include <ctype.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <memory>
+#ifndef _RK_AI_SERVER_H_
+#define _RK_AI_SERVER_H_
 
 #include "ai_scene_director.h"
-#include "server.h"
-#include "thread.h"
 #include "dbus_server.h"
-
 
 namespace rockchip {
 namespace aiserver {
@@ -38,10 +24,9 @@ class AIServer {
  private:
     std::unique_ptr<DBusServer>      mDbusServer;
     std::unique_ptr<AISceneDirector> mAIDirector;
-    std::unique_ptr<RTGraphListener> mGraphListener;
 };
 
 } // namespace aiserver
 } // namespace rockchip
 
-#endif // _RK_MEIDA_SERVER_H_
+#endif // _RK_AI_SERVER_H_

@@ -35,6 +35,9 @@ set(AI_SERVER_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/server/
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/thread/
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/osd/
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils/drm/
+    ${CMAKE_CURRENT_SOURCE_DIR}/task/
+    ${CMAKE_CURRENT_SOURCE_DIR}/parse/
     ${CMAKE_CURRENT_SOURCE_DIR}/dbus/
     ${CMAKE_CURRENT_SOURCE_DIR}/dbus/control/
     ${CMAKE_CURRENT_SOURCE_DIR}/dbus/database/
@@ -46,9 +49,10 @@ set(AISERVER_LIB
     dbus_cpp::dbus_cpp
     ${CMAKE_THREAD_LIBS_INIT})
 
-set(AI_SERVER_SRC aiserver.cpp ai_scene_director.cpp)
+set(AI_SERVER_SRC aiserver.cpp ai_scene_director.cpp ai_feature_retriver.cpp)
 aux_source_directory(utils/thread AI_SERVER_SRC)
-aux_source_directory(task_graph   AI_SERVER_SRC)
+aux_source_directory(utils/drm    AI_SERVER_SRC)
+aux_source_directory(task         AI_SERVER_SRC)
 aux_source_directory(dbus         AI_SERVER_SRC)
 aux_source_directory(dbus/control AI_SERVER_SRC)
 aux_source_directory(dbus/database        AI_SERVER_SRC)
@@ -66,6 +70,13 @@ if (${ENABLE_OSD_SERVER_ON})
     aux_source_directory(utils/osd/ AI_SERVER_SRC)
 endif()
 
+option(ENABLE_MINILOGGER  "enbale minilogger" ON)
+if (${ENABLE_MINILOGGER})
+    find_package(MiniLogger REQUIRED)
+    add_definitions(-DENABLE_MINILOGGER)
+    set(AISERVER_LIB ${AISERVER_LIB} MiniLogger::MiniLogger)
+endif()
+
 option(ENABLE_SHM_SERVER  "enbale shm server" ON)
 if (${ENABLE_SHM_SERVER})
     add_definitions(-DENABLE_SHM_SERVER)
@@ -79,7 +90,9 @@ if (${ENABLE_SHM_SERVER})
         set(AISERVER_LIB ${AISERVER_LIB} protobuf)
         include_directories(${PROTOBUF_INCLUDE_DIRS})
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
-        protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/utils/shmc/nn_data.proto)
+        protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
+                              ${CMAKE_CURRENT_SOURCE_DIR}/utils/shmc/nn_data.proto
+                              ${CMAKE_CURRENT_SOURCE_DIR}/utils/shmc/uvc_data.proto)
         set(AI_SERVER_INC ${AI_SERVER_INC} ${PROTO_HDRS})
         set(AI_SERVER_SRC ${AI_SERVER_SRC} ${PROTO_SRCS} ${PROTO_HDRS})
     endif()
@@ -94,21 +107,32 @@ if (${ENABLE_EXIV2_LIB_ON})
     aux_source_directory(utils/exiv2/ AI_SERVER_SRC)
 endif()
 
-option(USE_ROCKFACE  "enbale rockface" OFF)
-if (${USE_ROCKFACE})
-add_definitions(-DUSE_ROCKFACE)
+option(USE_STASTERIA  "enable sensetime st_asteria" OFF)
+if (${USE_STASTERIA})
+    add_definitions(-DHAVE_STASTERIA)
+    set(AISERVER_LIB ${AISERVER_LIB} stasteria)
+    set(AI_SERVER_INC ${AI_SERVER_INC} task/sensetime/)
+    link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/../../sensetime/lib/libstdc++.so.6.0.22)
+    aux_source_directory(task/sensetime/ ST_ASTERIA_SRC)
 endif()
 
-option(USE_ROCKX  "enbale rockx" ON)
+option(USE_ROCKFACE  "enbale rockface" OFF)
+if (${USE_ROCKFACE})
+    add_definitions(-DUSE_ROCKFACE)
+endif()
+
+option(USE_ROCKX  "enbale rockx" OFF)
 if (${USE_ROCKX})
-add_definitions(-DUSE_ROCKX)
-add_definitions(-DWITH_ROCKX)
-set(AISERVER_LIB ${AISERVER_LIB} rockx)
+    add_definitions(-DUSE_ROCKX)
+    add_definitions(-DHAVE_ROCKX)
+    set(AISERVER_LIB ${AISERVER_LIB} rockx)
+    set(AI_SERVER_INC ${AI_SERVER_INC} task/rockx/)
+    aux_source_directory(task/rockx/ ST_ASTERIA_SRC)
 endif()
 
 set(AISERVER_LIB ${AISERVER_LIB} rockit)
 
-add_executable(aiserver ${AI_SERVER_SRC})
+add_executable(aiserver ${AI_SERVER_SRC} ${ST_ASTERIA_SRC})
 target_include_directories(aiserver PUBLIC ${AI_SERVER_INC})
 target_link_libraries(aiserver ${AISERVER_LIB})
 add_dependencies(aiserver dbus_meida_control_xml2cppTask)
@@ -116,15 +140,6 @@ add_dependencies(aiserver dbus_dbserver_xml2cppTask)
 add_dependencies(aiserver dbus_storage_manager_xml2cppTask)
 install(TARGETS aiserver RUNTIME DESTINATION bin)
 install(FILES dbus/rockchip.aiserver.control.conf DESTINATION share/dbus-1/system.d)
-install(FILES conf/camera_nv12_rkrga_300.json DESTINATION share/aiserver/)
-install(FILES conf/camera_nv12_rkrga_300_rknn_facedetect.json DESTINATION share/aiserver/)
-install(FILES conf/camera_nv12_rkrga_300_rknn_face_landmark.json DESTINATION share/aiserver/)
-install(FILES conf/camera_nv12_rkrga_300_rknn_graph.json DESTINATION share/aiserver/)
-install(FILES conf/camera_nv12_rkrga_300_rknn_mixed.json DESTINATION share/aiserver/)
-install(FILES conf/camera_nv12_rkrga_300_rknn_posebody.json DESTINATION share/aiserver/)
-install(FILES conf/rknn_facedetect.json DESTINATION share/aiserver/)
-install(FILES conf/rknn_face_landmark.json DESTINATION share/aiserver/)
-install(FILES conf/rknn_posebody.json DESTINATION share/aiserver/)
 
 if (${ENABLE_OSD_SERVER})
     install(DIRECTORY resource/ DESTINATION share/aiserver FILES_MATCHING PATTERN "*.bmp")
