@@ -43,7 +43,7 @@ int32_t DBusGraphControl::SetGraphOutputObserver(const std::string &appName, con
 
 int32_t DBusGraphControl::EnableEPTZ(const int32_t &enabled) {
     if (NULL != mGraphListener) {
-        return mGraphListener->enableEPTZ(enabled);
+        return mGraphListener->setEPTZ(RT_EPTZ_AUTO, enabled);
     }
 
     return -1;

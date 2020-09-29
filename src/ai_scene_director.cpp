@@ -191,14 +191,15 @@ int32_t AISceneDirector::observeGraphOutput(const std::string &appName, const in
     return 0;
 }
 
-int32_t AISceneDirector::enableEPTZ(const int32_t &enabled) {
-    LOG_INFO("enableEPTZ(%d)\n", enabled);
+int32_t AISceneDirector::setEPTZ(const RT_EPTZ_MODE &mode, const int32_t &enabled) {
+    LOG_INFO("seteptz mode:(%d) val:(%d)\n", mode, enabled);
     if (nullptr != mUVCGraph) {
-        mUVCGraph->enableEPTZ(enabled);
+        mUVCGraph->setEptz(mode, enabled);
     }
-    LOG_INFO("enableEPTZ ok\n");
+    LOG_INFO("seteptz ok\n");
     return 0;
 }
+
 int32_t AISceneDirector::setZoom(const double &val) {
     LOG_INFO("setZoom(%f)\n", val);
     float zoomVal = (float)val;

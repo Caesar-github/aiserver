@@ -131,7 +131,7 @@ void ShmUVCController::handleUVCMessage(std::string &msg) {
       case MSG_UVC_ENABLE_ETPTZ: {
         MethodParams methodParams = message.method_params();
         int enabled = methodParams.i32_p();
-        graphListener->enableEPTZ(enabled);
+        graphListener->setEPTZ(RT_EPTZ_AUTO, enabled);
         break;
       }
       case MSG_UVC_SET_ZOOM: {
@@ -149,6 +149,18 @@ void ShmUVCController::handleUVCMessage(std::string &msg) {
       case MSG_UVC_CONFIG_CAMERA: {
         StreamInfo streamInfo = message.stream_info();
         doUpdateCameraParams(&streamInfo);
+        break;
+      }
+      case MSG_UVC_SET_EPTZ_PAN: {
+        MethodParams methodParams = message.method_params();
+        int pan = methodParams.i32_p();
+        graphListener->setEPTZ(RT_EPTZ_PAN, pan);
+        break;
+      }
+      case MSG_UVC_SET_EPTZ_TILT: {
+        MethodParams methodParams = message.method_params();
+        int tilt = methodParams.i32_p();
+        graphListener->setEPTZ(RT_EPTZ_TILT, tilt);
         break;
       }
       default:

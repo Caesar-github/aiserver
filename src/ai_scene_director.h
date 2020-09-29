@@ -42,7 +42,7 @@ class AISceneDirector : public RTGraphListener {
     virtual int32_t stop(const std::string &appName);
     virtual int32_t observeGraphOutput(const std::string &appName, const int32_t &enable);
 
-    virtual int32_t enableEPTZ(const int32_t &enabled);
+    virtual int32_t setEPTZ(const RT_EPTZ_MODE &mode, const int32_t &enabled);
     virtual int32_t setZoom(const double &val);
 
     virtual int32_t enableAIAlgorithm(const std::string &type);

@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "dbus_dispatcher.h"
+#include "rockit/RTUVCGraph.h"
 
 #define RT_APP_UVC                     "app_uvc"
 #define RT_APP_NN                      "app_nn"
@@ -32,7 +33,7 @@ class RTGraphListener {
     virtual int32_t stop(const std::string &appName) = 0;
     virtual int32_t observeGraphOutput(const std::string &appName, const int32_t &enable) = 0;
 
-    virtual int32_t enableEPTZ(const int32_t &enabled) = 0;
+    virtual int32_t setEPTZ(const RT_EPTZ_MODE &mode, const int32_t &enabled) = 0;
     virtual int32_t setZoom(const double &val) = 0;
     virtual int32_t enableAIAlgorithm(const std::string &type) = 0;
     virtual int32_t disableAIAlgorithm(const std::string &type) = 0;
