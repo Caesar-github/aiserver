@@ -59,7 +59,7 @@ int32_t STTaskHandler::processAIData(RTMediaBuffer *buffer) {
     if (nnResult != NULL) {
         postNNData(nnResult);
     } else {
-         LOG_INFO("ststst processAIData not find ai results\n");
+        LOG_INFO("processAIData not find ai results\n");
     }
     buffer->release();
 

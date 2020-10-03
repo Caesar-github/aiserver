@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "ai_task_factory.h"
+#include <assert.h>
 
 #ifdef HAVE_STASTERIA
 #include "st_task_handler.h"
@@ -19,6 +20,9 @@ AITaskHandler* AITaskFactory::createHandler() {
     handler = new STTaskHandler();
 #elif HAVE_ROCKX
     handler = new RockxTaskHandler();
+#else
+    LOG_ERROR("Error configuration for NN handler");
+    assert(0);
 #endif
 
     return handler;

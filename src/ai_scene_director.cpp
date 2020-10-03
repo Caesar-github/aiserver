@@ -97,11 +97,7 @@ int32_t AISceneDirector::setup() {
 int32_t AISceneDirector::prepareUVCGraph() {
     std::lock_guard<std::mutex> lock(mOpMutex);
     if (mUVCGraph == NULL) {
-#ifdef HAVE_STASTERIA
-        mUVCGraph = new RTUVCGraph("st_asteria");
-#else
-        mUVCGraph = new RTUVCGraph("rockx");
-#endif
+        mUVCGraph = new RTUVCGraph("aiuvc");
         mUVCGraph->observeUVCOutputStream(std::bind(&AISceneDirector::uvc_data_output_callback, this, std::placeholders::_1));
         mUVCGraph->observeNNOutputStream(std::bind(&AISceneDirector::nn_data_output_callback, this, std::placeholders::_1));
         mUVCGraph->observeMattingOutputStream(std::bind(&AISceneDirector::ai_matting_output_callback, this, std::placeholders::_1));
