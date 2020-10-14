@@ -10,7 +10,7 @@
 #include "parse/ai_results_parse.h"
 #include "rockit/RTAIDetectResults.h"
 
-#define MAX_KEEP_FACE_COUNT     8
+#define MAX_KEEP_FACE_COUNT     24
 #define FACE_FIRST_SEND_DELAY   8
 #define FACE_SAME_SEND_DELAY    30
 
