@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
     // install signal handlers.
 #if HAVE_SIGNAL_PROC
     signal(SIGINT,  sigterm_handler);  // SIGINT  = 2
-    // signal(SIGQUIT, sigterm_handler);  // SIGQUIT = 3
+    signal(SIGQUIT, sigterm_handler);  // SIGQUIT = 3
     signal(SIGTERM, sigterm_handler);  // SIGTERM = 15
     signal(SIGXCPU, sigterm_handler);  // SIGXCPU = 24
     signal(SIGPIPE, SIG_IGN);          // SIGPIPE = 13 is ingnored
