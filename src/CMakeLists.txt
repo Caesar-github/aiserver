@@ -130,7 +130,11 @@ if (${USE_ROCKX})
     aux_source_directory(task/rockx/ ST_ASTERIA_SRC)
 endif()
 
-set(AISERVER_LIB ${AISERVER_LIB} rockit)
+# vendor & samples
+set(VENDOR_STATIC vendor_static)
+add_subdirectory(vendor)
+
+set(AISERVER_LIB ${AISERVER_LIB} rockit -Wl,--whole-archive ${VENDOR_STATIC} -Wl,--no-whole-archive)
 
 add_executable(aiserver ${AI_SERVER_SRC} ${ST_ASTERIA_SRC})
 target_include_directories(aiserver PUBLIC ${AI_SERVER_INC})
