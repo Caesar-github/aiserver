@@ -87,7 +87,7 @@ if (${ENABLE_SHM_SERVER})
     find_package(Protobuf REQUIRED)
     if(PROTOBUF_FOUND)
         message(STATUS "protobuf library found")
-        set(AISERVER_LIB ${AISERVER_LIB} protobuf)
+        set(AISERVER_LIB ${AISERVER_LIB} protobuf-lite)
         include_directories(${PROTOBUF_INCLUDE_DIRS})
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
         protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS 
