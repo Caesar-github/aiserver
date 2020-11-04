@@ -56,7 +56,7 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     mEptzInfo.eptz_facedetect_score_shold = 0.60;
     mEptzInfo.eptz_zoom_speed = 30;
     mEptzInfo.eptz_fast_move_frame_judge = 5;
-    mEptzInfo.eptc_clip_ratio = 0.75;
+    mEptzInfo.eptz_clip_ratio = 0.75;
     mEptzInfo.eptz_threshold_x = (mEptzInfo.eptz_src_width - mEptzInfo.eptz_dst_width) / 8;
     mEptzInfo.eptz_threshold_y = (mEptzInfo.eptz_src_height - mEptzInfo.eptz_dst_height) / 8;
     if (mEptzInfo.eptz_dst_width == 1920) {
@@ -92,6 +92,11 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
     // 此处是上级NN人脸检测节点输出人脸区域信息，SDK默认数据流路径是scale1->NN->EPTZ
     if (context->hasInputStream("image:rect")) {
         INT32 count = context->inputQueueSize("image:rect");
+        if(count == 0){
+            EptzAiData eptz_ai_data;
+            eptz_ai_data.face_count = 0;
+            calculateClipRect(&eptz_ai_data, mLastXY, true, 5);
+        }
         while (count) {
             dstBuffer = context->dequeInputBuffer("image:rect");
             if (dstBuffer == RT_NULL)

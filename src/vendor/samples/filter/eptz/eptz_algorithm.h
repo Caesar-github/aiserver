@@ -24,23 +24,25 @@
 #include "eptz_type.h"
 
 typedef struct _EptzInitInfo {
-  INT32 eptz_npu_width;
-  INT32 eptz_npu_height;
-  INT32 eptz_src_width;
-  INT32 eptz_src_height;
-  INT32 eptz_dst_width;
-  INT32 eptz_dst_height;
-  INT32 eptz_threshold_x;
-  INT32 eptz_threshold_y;
-  INT32 eptz_iterate_x;
-  INT32 eptz_iterate_y;
-  float eptc_clip_ratio;
-  float eptz_facedetect_score_shold;
-  INT32 eptz_fast_move_frame_judge;
-  INT32 eptz_zoom_speed;
+  INT32 eptz_npu_width;              // AI计算使用图像的宽
+  INT32 eptz_npu_height;             // AI计算使用图像的高
+  INT32 eptz_src_width;              //摄像头源数据的宽
+  INT32 eptz_src_height;             //摄像头源数据的高
+  INT32 eptz_dst_width;              //摄像头最终显示分辨率的宽
+  INT32 eptz_dst_height;             //摄像头最终显示分辨率的高
+  INT32 eptz_threshold_x;            //人脸跟踪X灵敏度
+  INT32 eptz_threshold_y;            //人脸跟踪Y灵敏度
+  INT32 eptz_iterate_x;              //人脸跟踪X方向速度
+  INT32 eptz_iterate_y;              //人脸跟踪Y方向速度
+  float eptz_clip_ratio;             //人脸跟踪ZOOM/PAN效果分辨率比例设置
+  float eptz_facedetect_score_shold; // AI人脸质量分阈值
+  INT32 eptz_fast_move_frame_judge;  //人物移动防抖阈值
+  INT32 eptz_zoom_speed;             //人脸跟踪ZOOM/PAN效果转换速度
 } EptzInitInfo;
 
 EPTZ_RET eptzConfigInit(EptzInitInfo *_eptz_info);
 EPTZ_RET calculateClipRect(EptzAiData *eptz_ai_data, INT32 *output_result);
+EPTZ_RET calculateClipRect(EptzAiData *eptz_ai_data, INT32 *output_result,
+                           bool back_to_origin, int delay_time);
 
 #endif // EPTZ_ALGORITHM_H_

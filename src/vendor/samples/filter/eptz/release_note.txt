@@ -1,3 +1,13 @@
+eptz V0.1.3：
+【主要更新】
+1.修复eptzConfigInit接口，内存泄漏48个字节的问题
+
+eptz V0.1.2：
+【主要更新】
+1.功能添加，可根据calculateClipRect传入的output_result初始值设置EPTZ裁剪框初始位置
+2.功能添加, calculateClipRect可设置在X秒无人情况下回到预览中心位置
+3.头文件参数说明
+
 eptz V0.1.1：
 【主要更新】
 1.添加日志打印，通过export eptz_log_level=3动态打开debug信息
