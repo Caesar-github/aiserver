@@ -37,6 +37,7 @@ class RTGraphListener {
     virtual int32_t setZoom(const double &val) = 0;
     virtual int32_t enableAIAlgorithm(const std::string &type) = 0;
     virtual int32_t disableAIAlgorithm(const std::string &type) = 0;
+    virtual int32_t updateAIAlgorithmParams(const std::string &type) = 0;
     virtual int32_t openAIMatting() = 0;
     virtual int32_t closeAIMatting() = 0;
 
@@ -64,6 +65,7 @@ class DBusGraphControl : public control::graph_adaptor,
     // AI
     int32_t EnableAIAlgorithm(const std::string &type);
     int32_t DisableAIAlgorithm(const std::string &type);
+    int32_t UpdateAIAlgorithmParams(const std::string &cmdName);
 
     int32_t OpenAIMatting(const std::string &type);
     int32_t CloseAIMatting(const std::string &type);

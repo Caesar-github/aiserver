@@ -132,5 +132,20 @@ int32_t DBusGraphControl::SetNpuCtlStatus(const std::string &cmdName) {
     return 0;
 }
 
+int32_t DBusGraphControl::UpdateAIAlgorithmParams(const std::string &cmdName) {
+    LOG_INFO("%s: Dbus GraphCtrl received: %s\n", __FUNCTION__, cmdName.c_str());
+    const char *ss = nullptr;
+    if (!(ss = strstr(cmdName.c_str(), ":"))) {
+        LOG_INFO("unkown npu control format, rawcmd:%s\n", cmdName.c_str());
+        return -1;
+    }
+
+    if (NULL != mGraphListener) {
+        return mGraphListener->updateAIAlgorithmParams(cmdName.c_str());
+    }
+
+    return 0;
+}
+
 } // namespace aiserver
 } // namespace rockchip

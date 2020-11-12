@@ -47,6 +47,7 @@ class AISceneDirector : public RTGraphListener {
 
     virtual int32_t enableAIAlgorithm(const std::string &type);
     virtual int32_t disableAIAlgorithm(const std::string &type);
+    virtual int32_t updateAIAlgorithmParams(const std::string &type);
 
     virtual int32_t openAIMatting();
     virtual int32_t closeAIMatting();

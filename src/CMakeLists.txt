@@ -112,7 +112,7 @@ if (${USE_STASTERIA})
     add_definitions(-DHAVE_STASTERIA)
     set(AISERVER_LIB ${AISERVER_LIB} stasteria)
     set(AI_SERVER_INC ${AI_SERVER_INC} task/sensetime/)
-    link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/../../sensetime/lib/libstdc++.so.6.0.22)
+    #link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/../../sensetime/lib/libstdc++.so.6.0.22)
     aux_source_directory(task/sensetime/ ST_ASTERIA_SRC)
 endif()
 

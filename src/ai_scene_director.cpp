@@ -224,6 +224,23 @@ int32_t AISceneDirector::disableAIAlgorithm(const std::string &type) {
     return 0;
 }
 
+int32_t AISceneDirector::updateAIAlgorithmParams(const std::string &params) {
+    LOG_INFO("updateAIAlgorithmParams(%s)\n", params.c_str());
+    int pos = params.find(":");
+    std::string params_name = params.substr(0, pos);
+    float params_value = atof(params.substr(pos + 1, params.size() - 1).c_str());
+    LOG_INFO("updateAIAlgorithmParams name(%s) value(%.2f) \n", params_name.c_str(), params_value);
+    RtMetaData meta;
+    meta.setCString(kKeyPipeInvokeCmd, "set_nn_params");
+    meta.setCString("st_param_type", params_name.c_str());
+    meta.setFloat("st_param_value", params_value);
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->updateNNParams(&meta);
+    }
+    LOG_INFO("updateAIAlgorithmParams ok\n");
+    return 0;
+}
+
 int32_t AISceneDirector::openAIMatting() {
     LOG_INFO("openAIMatting in\n");
     if (nullptr != mUVCGraph) {
