@@ -18,6 +18,7 @@
 #define UVC_DYNAMIC_DEBUG 1 //release version can set to 0
 #define UVC_DYNAMIC_DEBUG_USE_TIME_CHECK   "/tmp/uvc_use_time"
 #define UVC_DYNAMIC_DEBUG_IPC_BUFFER_CHECK "/tmp/uvc_ipc_buffer"
+#define UVC_IPC_DYNAMIC_DEBUG_STATE        "/tmp/uvc_ipc_state"
 
 namespace {
 constexpr const char *kShmUVCWriteKey  = "0x20001";
@@ -54,6 +55,9 @@ class ShmUVCController {
     void startRecvMessage();
     void stopRecvMessage();
     void recvUVCMessageLoop();
+#if UVC_DYNAMIC_DEBUG
+    void debugLoop();
+#endif
 
   private:
     void handleUVCMessage(std::string &msg);
@@ -77,6 +81,15 @@ class ShmUVCController {
     int32_t               drmFd;
     int32_t               cameraWidth;
     int32_t               cameraHeight;
+#if UVC_DYNAMIC_DEBUG
+    std::thread          *debugThread;
+    bool                 debugLooping;
+    int32_t              recv_seq;
+    int32_t              send_seq;
+    int32_t              recv_count;
+    int32_t              send_count;
+#endif
+
 };
 } // namespace aiserver
 } // namespace rockchip

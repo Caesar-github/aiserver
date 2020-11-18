@@ -28,11 +28,44 @@ ShmUVCController::ShmUVCController() {
 }
 
 ShmUVCController::~ShmUVCController() {
+#if UVC_DYNAMIC_DEBUG
+    debugLooping = false;
+    if (debugThread)
+    {
+        debugThread->join();
+        delete debugThread;
+        debugThread = nullptr;
+    }
+#endif
     if (drmFd >= 0) {
         drm_close(drmFd);
         drmFd = -1;
     }
 }
+
+#if UVC_DYNAMIC_DEBUG
+void ProcessDebug(void *opaque)
+{
+    prctl(PR_SET_NAME, "shm_uvc_debug_thread");
+    ShmUVCController *controller = (ShmUVCController *)opaque;
+    controller->debugLoop();
+}
+
+void ShmUVCController::debugLoop()
+{
+    LOG_INFO("enter\n");
+    while (debugLooping)
+    {
+        sleep(1);
+        if (!access(UVC_IPC_DYNAMIC_DEBUG_STATE, 0))
+        {
+            LOG_INFO("send_seq:%d, recv_seq:%d send_count:%d, recv_count:%d\n",
+                      send_seq, recv_seq, send_count, recv_count);
+        }
+    }
+    LOG_INFO("exit \n");
+}
+#endif
 
 void ShmUVCController::initialize() {
     recvLooping = false;
@@ -50,6 +83,10 @@ void ShmUVCController::initialize() {
     shmRet = shmReadWriteQueue.InitForWrite(kShmUVCReadKey, kUVCQueueBufSize);
     shmRet = shmReadQueue.InitForRead(kShmUVCReadKey);
     LOG_INFO("shmReadQueue InitForRead(ret=%d)\n", shmRet);
+#endif
+#if UVC_DYNAMIC_DEBUG
+    debugLooping = true;
+    debugThread = new std::thread(ProcessDebug, this);
 #endif
 
     drmFd = drm_open();
@@ -175,6 +212,10 @@ void ShmUVCController::doStartUVC() {
     }
     std::lock_guard<std::mutex> lock(opMutex);
     uvcRunning = true;
+#if UVC_DYNAMIC_DEBUG
+    send_count = 0;
+    recv_count = 0;
+#endif
 }
 
 void ShmUVCController::doStopUVC() {
@@ -195,6 +236,9 @@ void ShmUVCController::doRecvUVCBuffer(MediaBufferInfo* bufferInfo) {
     std::lock_guard<std::mutex> lock(opMutex);
     int32_t uniqueId = bufferInfo->id();
     int64_t privData = bufferInfo->priv_data();
+    recv_seq = bufferInfo->seq();
+    recv_count ++;
+
     RTMediaBuffer* mediaBuffer = (RTMediaBuffer *)privData;
 
     int32_t found = 0;
@@ -214,7 +258,7 @@ void ShmUVCController::doRecvUVCBuffer(MediaBufferInfo* bufferInfo) {
     if (found) {
         LOG_DEBUG("recv uvc buffer uniqueId %d, buffer 0x%llx\n", uniqueId, privData);
     } else {
-        LOG_ERROR("recv invalid uvc buffer 0x%llx\n", privData);
+        LOG_ERROR("recv invalid uvc buffer 0x%llx, seq:%d\n", privData, recv_seq);
     }
 }
 
@@ -261,6 +305,7 @@ void ShmUVCController::clearUVCBuffer() {
 
 void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     int64_t pts = 0;
+    int32_t seq = 0;
     std::string sendbuf;
     UVCMessage message;
     if (buffer == nullptr) {
@@ -272,6 +317,7 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     //MediaBufferInfo bufferInfo = message.buffer_info();
 
     buffer->getMetaData()->findInt64(kKeyFramePts, &pts);
+    buffer->getMetaData()->findInt32(kKeyFrameSequence, &seq);
     bufferInfo->set_id(buffer->getUniqueID());
     bufferInfo->set_size(buffer->getSize());
     bufferInfo->set_fd(buffer->getFd());
@@ -279,7 +325,7 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     bufferInfo->set_pts(pts);
     bufferInfo->set_data((int64_t)buffer->getData());
     bufferInfo->set_priv_data((int64_t)buffer);
-
+    bufferInfo->set_seq(seq);
     message.set_msg_type(MSG_UVC_TRANSPORT_BUF);
     message.set_msg_name("uvcbuffer");
     message.SerializeToString(&sendbuf);
@@ -294,13 +340,15 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     shmWriteQueue.Push(sendbuf);
 
 #if UVC_DYNAMIC_DEBUG
+    send_seq = seq;
+    send_count ++;
     if (!access(UVC_DYNAMIC_DEBUG_USE_TIME_CHECK, 0)) {
-        int64_t use_time_us, now_time_us;
+        int32_t use_time_us, now_time_us;
         struct timespec now_tm = {0, 0};
         clock_gettime(CLOCK_MONOTONIC, &now_tm);
         now_time_us = now_tm.tv_sec * 1000000LL + now_tm.tv_nsec / 1000; // us
         use_time_us = now_time_us - pts;
-        LOG_ERROR("isp->aiserver latency time:%lld us, %lld ms\n", use_time_us, use_time_us / 1000);
+        LOG_ERROR("isp->aiserver seq:%d latency time:%d us, %d ms\n",seq, use_time_us, use_time_us / 1000);
     }
 
     if (!access(UVC_DYNAMIC_DEBUG_IPC_BUFFER_CHECK, 0)) {
