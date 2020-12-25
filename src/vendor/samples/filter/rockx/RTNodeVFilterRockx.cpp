@@ -194,8 +194,8 @@ static RTTaskNode* createRockxFilter() {
  * register node stub to RTTaskNodeFactory
  *****************************************/
 RTNodeStub node_stub_filter_rockx {
-    .mUid          = kStubFilterRockx,
-    .mName         = NODE_NAME_ROCKX,
+    .mUid          = 0x09,
+    .mName         = "rockxdemo",
     .mVersion      = "v1.0",
     .mCreateObj    = createRockxFilter,
     .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },

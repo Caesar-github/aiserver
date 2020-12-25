@@ -48,6 +48,7 @@ class RTVFilterRockx {
     virtual RT_RET parseConfig(RtMetaData *meta);
 
     virtual RT_RET faceDetect(RTMediaBuffer *src, RtMetaData *extraInfo, rockx_image_t *image);
+    virtual RT_RET headDetect(RTMediaBuffer *src, RtMetaData *extraInfo, rockx_image_t *image);
     virtual void   freeConfig();
     virtual void   dumpRockxObject(void *object);
     virtual RT_RET fillAIResultToMeta(RtMetaData *meta, void *data);

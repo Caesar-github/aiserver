@@ -20,6 +20,7 @@
 
 #include "RTVFilterRockx.h"           // NOLINT
 #include <dlfcn.h>                    // NOLINT
+#include <unistd.h>
 
 // rockit headers
 #include "rockit/rt_log.h"                   // NOLINT
@@ -47,6 +48,15 @@
 #define DEBUG_FLAG 0x0
 
 #define LIBROCKX    "librockx.so"
+
+#define ROCKX_HEAD_DETECT           "rockx_head_detect"
+#define ROCKX_FACE_DETECT_V2        "rockx_face_detect_v2"
+#define ROCKX_FACE_DETECT_V3        "rockx_face_detect_v3"
+#define ROCKX_FACE_DETECT_V3_LARGE  "rockx_face_detect_v3_large"
+
+#define ROCKX_INPUT_DEBUG "/tmp/rockx_input"
+
+FILE *rockx_input = nullptr;
 
 static const char* sLibRockxPath[] = {
     "/vendor/lib",  // android
@@ -100,6 +110,8 @@ typedef struct _RTRockxFunc {
     rockx_ret_t (*pose_finger)(rockx_handle_t handle, rockx_image_t *in_img, rockx_keypoints_t *keypoints);
     rockx_ret_t (*face_detect)(rockx_handle_t handle, rockx_image_t *in_img, rockx_object_array_t *face_array,
                                    rockx_async_callback* callback);
+    rockx_ret_t (*head_detect)(rockx_handle_t handle, rockx_image_t *in_img, rockx_object_array_t *face_array,
+                                   rockx_async_callback* callback);
     rockx_ret_t (*object_track)(rockx_handle_t handle, int width, int height, int max_track_time,
                                    rockx_object_array_t* in_track_objects,
                                    rockx_object_array_t* out_track_objects);
@@ -118,14 +130,14 @@ typedef struct _RTRockxContext {
     INT32                 mRockxHandleSize;
     //  pointer of rknn handler
     rockx_handle_t       *mRockx;
-
     // rockx's config
     INT32                 mSkipFramePeriod;
     RTRockxCfg            mCfg;
     rockx_image_t        *mImage;
-
     // 1 means this node is enble
     RT_BOOL               mIsEnable;
+    // size of processCount
+    INT32                 processCount;
 } RTRockxContext;
 
 struct _RockxRequstCell {
@@ -252,10 +264,19 @@ RT_RET RTVFilterRockx::create(RtMetaData *config) {
 
     INT32 size = 0;
     rockx_module_t models[10];
-    if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT)) {
+    if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT_V3)) {
         models[size++] = ROCKX_MODULE_FACE_DETECTION_V3;
         models[size++] = ROCKX_MODULE_OBJECT_TRACK;
-    } else {
+    } else if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT_V3_LARGE)){
+        models[size++] = ROCKX_MODULE_FACE_DETECTION_V3_LARGE;
+        models[size++] = ROCKX_MODULE_OBJECT_TRACK;
+    } else if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT_V2)){
+        models[size++] = ROCKX_MODULE_FACE_DETECTION_V2;
+        models[size++] = ROCKX_MODULE_OBJECT_TRACK;
+    } else if (!util_strcasecmp(modelname, ROCKX_HEAD_DETECT)){
+        models[size++] = ROCKX_MODULE_HEAD_DETECTION;
+        models[size++] = ROCKX_MODULE_OBJECT_TRACK;
+    } else{
         RT_LOGE("model = %s not support", modelname);
         RT_ASSERT(0);
     }
@@ -356,6 +377,9 @@ RT_RET RTVFilterRockx::openLib(RtMetaData *meta) {
     ctx->mOpts.face_detect = (rockx_ret_t (*)(rockx_handle_t handle, rockx_image_t *in_img,
                                 rockx_object_array_t *face_array, rockx_async_callback* callback))
                             dlsym(handler, "rockx_face_detect");
+    ctx->mOpts.head_detect = (rockx_ret_t (*)(rockx_handle_t handle, rockx_image_t *in_img,
+                                rockx_object_array_t *face_array, rockx_async_callback* callback))
+                            dlsym(handler, "rockx_head_detect");
     ctx->mOpts.object_track = (rockx_ret_t (*)(rockx_handle_t handle, int width, int height, int max_track_time,
                                     rockx_object_array_t* in_track_objects,
                                     rockx_object_array_t* out_track_objects))
@@ -377,7 +401,7 @@ RT_RET RTVFilterRockx::openLib(RtMetaData *meta) {
     }
 
     if ((ctx->mOpts.face_detect == RT_NULL) || (ctx->mOpts.object_track == RT_NULL)
-             || (ctx->mOpts.face_landmark == RT_NULL)) {
+             || (ctx->mOpts.face_landmark == RT_NULL) ||(ctx->mOpts.head_detect == RT_NULL) ) {
         RT_LOGD("failed to find rockx_face_detect in %s", LIBROCKX);
     }
 
@@ -519,6 +543,15 @@ RT_RET RTVFilterRockx::doFilter(RTMediaBuffer *src, RtMetaData *extraInfo, RTMed
         return RT_ERR_BAD;
     }
 
+    ctx->processCount++;
+    #if 0
+    if (ctx->mSkipFramePeriod > 1
+            && (ctx->processCount % ctx->mSkipFramePeriod != 0)) {
+        RT_LOGD_IF(DEBUG_FLAG, "skip frame interval %d, process count %d",
+                    ctx->mSkipFramePeriod, ctx->processCount);
+        return err;
+    }
+    #endif
     RtMetaData* meta = extraInfo;
     INT32 width  = ctx->mCfg.width;
     INT32 height = ctx->mCfg.height;
@@ -553,11 +586,28 @@ RT_RET RTVFilterRockx::doFilter(RTMediaBuffer *src, RtMetaData *extraInfo, RTMed
     input_img.width  = width;
     input_img.height = height;
     input_img.data   = reinterpret_cast<uint8_t *>(src->getData());
+    //RT_LOGD_IF(1, "procss dofilter(src addr :%p)",src);
+    if (!access(ROCKX_INPUT_DEBUG, 0)) {
+        if (nullptr == rockx_input) {
+            rockx_input = fopen("/userdata/rockx_input","w+b");
+        }
+        if (nullptr != rockx_input && nullptr != input_img.data){
+            RT_LOGD_IF(1, "DEBUG_ROCKX_INPUT data %p ", reinterpret_cast<uint8_t *>(src->getData()));
+            fwrite(reinterpret_cast<uint8_t *>(src->getData()), 1, 1382400, rockx_input);
+        }
+    }else{
+        if (nullptr != rockx_input)
+            fclose(rockx_input);
+    }
+
     input_img.pixel_format = format;
     const char *model = reinterpret_cast<const char *>(ctx->mCfg.model);
-    RT_LOGD_IF(DEBUG_FLAG, "procss begin(model:%s, size= %d)", model, src->getLength());
-    if (!util_strcasecmp(model, ROCKX_FACE_DETECT)) {
+    //RT_LOGD_IF(1, "procss begin(model:%s, size= %d)", model, src->getLength());
+    if (!util_strcasecmp(model, ROCKX_FACE_DETECT_V2) || !util_strcasecmp(model, ROCKX_FACE_DETECT_V3) ||
+        !util_strcasecmp(model, ROCKX_FACE_DETECT_V3_LARGE)) {
         err = faceDetect(src, dst->getMetaData(), &input_img);
+    } else if(!util_strcasecmp(model, ROCKX_HEAD_DETECT)){
+        err = headDetect(src, dst->getMetaData(), &input_img);
     } else {
         RT_LOGE("model:%s is not supported.", model);
         RT_ASSERT(0);
@@ -604,6 +654,74 @@ RT_RET RTVFilterRockx::faceDetect(RTMediaBuffer *src, RtMetaData *extraInfo, roc
     rockx_object_array_t object_array;
     rt_memset(&face_array, 0, sizeof(rockx_object_array_t));
     rockx_ret_t ret = ctx->mOpts.face_detect(handle_facedetect, image, &face_array, RT_NULL);
+    if ((ret != ROCKX_RET_SUCCESS) || (face_array.count <= 0)) {
+        // RT_LOGE("failed to rockx_face_detect, error=%d", ret);
+        return RT_ERR_UNKNOWN;
+    }
+
+    ret = ctx->mOpts.object_track(handle_object_track, image->width, image->height, \
+                                  1, &face_array, &object_array);
+    if ((ret != ROCKX_RET_SUCCESS) || (object_array.count <= 0)) {
+        RT_LOGE("failed to rockx_object_track, error=%d", ret);
+        return RT_ERR_UNKNOWN;
+    }
+
+    RTRknnResult result_item;
+    rt_memset(&result_item, 0, sizeof(RTRknnResult));
+    result_item.type = RT_RKNN_TYPE_FACE;
+
+    // store result to MediaBuffer
+    RTRknnAnalysisResults* analysisResults = rt_malloc(RTRknnAnalysisResults);
+    RT_ASSERT(analysisResults != RT_NULL);
+    RTRknnResult* nn_result = rt_malloc_array(RTRknnResult, object_array.count);
+    RT_ASSERT(nn_result != RT_NULL);
+    rt_memset(nn_result, 0, sizeof(RTRknnResult)*object_array.count);
+
+    analysisResults->counter = object_array.count;
+    analysisResults->results = nn_result;
+
+    if (extraInfo != RT_NULL) {
+        fillAIResultToMeta(extraInfo, reinterpret_cast<void*>(analysisResults));
+    } else {
+        RT_LOGD("extraInfo = RT_NULL");
+    }
+
+    for (INT32 i = 0; i < object_array.count; i++) {
+        rockx_object_t *object = &object_array.object[i];
+        rt_memcpy(&result_item.face_info.object, object, sizeof(rockx_object_t));
+        result_item.img_w = image->width;
+        result_item.img_h = image->height;
+
+        dumpRockxObject(reinterpret_cast<void *>(object));
+        rt_memcpy(&nn_result[i], &result_item, sizeof(RTRknnResult));
+    }
+
+    return RT_OK;
+}
+
+RT_RET RTVFilterRockx::headDetect(RTMediaBuffer *src, RtMetaData *extraInfo, rockx_image_t *image) {
+    RTRockxContext *ctx = getRockxCtx(mCtx);
+    if ((RT_NULL == ctx) || (RT_NULL == src) || (RT_NULL == image)) {
+        RT_LOGE("invalid parameters, src or image is NULL");
+        return RT_ERR_NULL_PTR;
+    }
+
+    rockx_handle_t handle_headdetect   = ctx->mRockx[0];
+    rockx_handle_t handle_object_track = ctx->mRockx[1];
+    if ((RT_NULL == ctx->mOpts.head_detect) || (RT_NULL == handle_headdetect)) {
+        RT_LOGE("invalid parameters, rockx face_detect is not ready!");
+        return RT_ERR_NULL_PTR;
+    }
+
+    if ((RT_NULL == ctx->mOpts.object_track) || (RT_NULL == handle_object_track)) {
+        RT_LOGE("invalid parameters, rockx object_track is not ready!");
+        return RT_ERR_NULL_PTR;
+    }
+
+    rockx_object_array_t face_array;
+    rockx_object_array_t object_array;
+    rt_memset(&face_array, 0, sizeof(rockx_object_array_t));
+    rockx_ret_t ret = ctx->mOpts.head_detect(handle_headdetect, image, &face_array, RT_NULL);
     if ((ret != ROCKX_RET_SUCCESS) || (face_array.count <= 0)) {
         // RT_LOGE("failed to rockx_face_detect, error=%d", ret);
         return RT_ERR_UNKNOWN;
