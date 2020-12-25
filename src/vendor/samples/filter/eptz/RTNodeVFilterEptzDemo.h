@@ -41,9 +41,8 @@ class RTNodeVFilterEptz : public RTTaskNode {
     float           mClipRatio;
     INT32           mClipWidth;
     INT32           mClipHeight;
-
     INT32           mLastXY[4];
-    float           mTempXY[4];
+    INT32           mTempXY[4];
     EptzInitInfo    mEptzInfo;
 };
 

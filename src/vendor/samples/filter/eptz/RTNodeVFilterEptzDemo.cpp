@@ -26,6 +26,7 @@
 
 #define LOG_TAG "RTNodeVFilterEptz"
 #define kStubRockitEPTZDemo                MKTAG('e', 'p', 'd', 'm')
+#define EPTZ_CLIP_RATIO             0.75
 
 RTNodeVFilterEptz::RTNodeVFilterEptz() {
 }
@@ -37,6 +38,7 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     RtMetaData* inputMeta   = context->options();
     RT_RET err              = RT_OK;
 
+    mClipRatio = EPTZ_CLIP_RATIO;
     RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_WIDTH, &mSrcWidth));
     RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_HEIGHT, &mSrcHeight));
     RT_ASSERT(inputMeta->findInt32(OPT_EPTZ_CLIP_WIDTH, &mClipWidth));
@@ -49,31 +51,35 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
 
     mEptzInfo.eptz_src_width = mSrcWidth;
     mEptzInfo.eptz_src_height = mSrcHeight;
-    mEptzInfo.eptz_dst_width = mClipWidth;
-    mEptzInfo.eptz_dst_height = mClipHeight;
-    mEptzInfo.eptz_npu_width = 640;
-    mEptzInfo.eptz_npu_height = 480;
-    mEptzInfo.eptz_facedetect_score_shold = 0.60;
+    mEptzInfo.eptz_dst_width = mSrcWidth * mClipRatio;
+    mEptzInfo.eptz_dst_height = mSrcHeight * mClipRatio;
+    mEptzInfo.eptz_dst_width = mEptzInfo.eptz_dst_width - mEptzInfo.eptz_dst_width % 120;
+    mEptzInfo.eptz_dst_height = mEptzInfo.eptz_dst_height - mEptzInfo.eptz_dst_height % 120;
+    mEptzInfo.eptz_npu_width = 1280;
+    mEptzInfo.eptz_npu_height = 720;
+    mEptzInfo.eptz_facedetect_score_shold = 0.50;
     mEptzInfo.eptz_zoom_speed = 30;
     mEptzInfo.eptz_fast_move_frame_judge = 5;
     mEptzInfo.eptz_clip_ratio = 0.75;
+    mEptzInfo.eptz_face_small_ratio = -1;//0.07;
+    mEptzInfo.eptz_face_big_ratio = 10;//0.23;
     mEptzInfo.eptz_threshold_x = (mEptzInfo.eptz_src_width - mEptzInfo.eptz_dst_width) / 8;
     mEptzInfo.eptz_threshold_y = (mEptzInfo.eptz_src_height - mEptzInfo.eptz_dst_height) / 8;
-    if (mEptzInfo.eptz_dst_width == 1920) {
+    if (mEptzInfo.eptz_dst_width >= 1920) {
         mEptzInfo.eptz_iterate_x = 6;
         mEptzInfo.eptz_iterate_y = 3;
-    } else if (mEptzInfo.eptz_dst_width == 1280) {
+    } else if (mEptzInfo.eptz_dst_width >= 1280) {
         mEptzInfo.eptz_iterate_x = 4;
         mEptzInfo.eptz_iterate_y = 2;
     } else {
-        mEptzInfo.eptz_iterate_x = 2;
+        mEptzInfo.eptz_iterate_x = 4;
         mEptzInfo.eptz_iterate_y = 2;
     }
     RT_LOGD("eptz_info src_wh [%d %d] dst_wh[%d %d], threshold_xy[%d %d] "
-           "iterate_xy[%d %d]\n",
+           "iterate_xy[%d %d] ratio[%.2f] \n",
            mEptzInfo.eptz_src_width, mEptzInfo.eptz_src_height,
            mEptzInfo.eptz_dst_width, mEptzInfo.eptz_dst_height, mEptzInfo.eptz_threshold_x,
-           mEptzInfo.eptz_threshold_y, mEptzInfo.eptz_iterate_x, mEptzInfo.eptz_iterate_y);
+           mEptzInfo.eptz_threshold_y, mEptzInfo.eptz_iterate_x, mEptzInfo.eptz_iterate_y, mClipRatio);
 
     mLastXY[0] = (mEptzInfo.eptz_src_width - mEptzInfo.eptz_dst_width) / 2;
     mLastXY[1] = (mEptzInfo.eptz_src_height - mEptzInfo.eptz_dst_height) / 2;

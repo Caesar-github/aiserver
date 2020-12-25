@@ -18,6 +18,7 @@ if (${ENABLE_SAMPLE_NODE_EPTZ})
     include_directories(samples/filter/eptz)
     link_directories(samples/filter/eptz)
     link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so DESTINATION ../../oem/usr/lib/)
     set(SRC_FILES_VENDOR
         ${SRC_FILES_VENDOR}
         samples/filter/eptz/RTNodeVFilterEptzDemo.cpp
