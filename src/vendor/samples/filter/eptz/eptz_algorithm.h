@@ -28,17 +28,14 @@ typedef struct _EptzInitInfo {
   INT32 eptz_npu_height;  // AI计算使用图像的高
   INT32 eptz_src_width;   //摄像头源数据的宽
   INT32 eptz_src_height;  //摄像头源数据的高
-  INT32 eptz_dst_width;   //摄像头最终显示分辨率的宽
-  INT32 eptz_dst_height;  //摄像头最终显示分辨率的高
+  INT32 eptz_dst_width;   //摄像头裁剪区域的宽，小于等于数据源宽
+  INT32 eptz_dst_height;  //摄像头裁剪区域的高，小于等于数据源高
+  INT32 camera_dst_width;   //预览显示的宽
+  INT32 camera_dst_height;  //预览显示的高
   INT32 eptz_threshold_x; //人脸跟踪X灵敏度
   INT32 eptz_threshold_y; //人脸跟踪Y灵敏度
   INT32 eptz_iterate_x;   //人脸跟踪X方向速度
   INT32 eptz_iterate_y;   //人脸跟踪Y方向速度
-  float eptz_clip_ratio;  //人脸跟踪ZOOM/PAN效果分辨率比例设置
-  float eptz_face_small_ratio; //人脸占画面比例下阈值，控制单人/多人 场景zoom
-                               //(-1不启用)
-  float eptz_face_big_ratio; //人脸占画面比例上阈值，控制单人/多人 场景zoom
-                             //(10不启用)
   float eptz_facedetect_score_shold; // AI人脸质量分阈值
   INT32 eptz_fast_move_frame_judge;  //人物移动防抖阈值
   INT32 eptz_zoom_speed;             //人脸跟踪ZOOM/PAN效果转换速度

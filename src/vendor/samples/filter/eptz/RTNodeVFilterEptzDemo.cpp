@@ -26,7 +26,6 @@
 
 #define LOG_TAG "RTNodeVFilterEptz"
 #define kStubRockitEPTZDemo                MKTAG('e', 'p', 'd', 'm')
-#define EPTZ_CLIP_RATIO             0.75
 
 RTNodeVFilterEptz::RTNodeVFilterEptz() {
 }
@@ -38,7 +37,6 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     RtMetaData* inputMeta   = context->options();
     RT_RET err              = RT_OK;
 
-    mClipRatio = EPTZ_CLIP_RATIO;
     RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_WIDTH, &mSrcWidth));
     RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_HEIGHT, &mSrcHeight));
     RT_ASSERT(inputMeta->findInt32(OPT_EPTZ_CLIP_WIDTH, &mClipWidth));
@@ -51,20 +49,19 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
 
     mEptzInfo.eptz_src_width = mSrcWidth;
     mEptzInfo.eptz_src_height = mSrcHeight;
-    mEptzInfo.eptz_dst_width = mSrcWidth * mClipRatio;
-    mEptzInfo.eptz_dst_height = mSrcHeight * mClipRatio;
-    mEptzInfo.eptz_dst_width = mEptzInfo.eptz_dst_width - mEptzInfo.eptz_dst_width % 120;
-    mEptzInfo.eptz_dst_height = mEptzInfo.eptz_dst_height - mEptzInfo.eptz_dst_height % 120;
-    mEptzInfo.eptz_npu_width = 1280;
-    mEptzInfo.eptz_npu_height = 720;
-    mEptzInfo.eptz_facedetect_score_shold = 0.50;
-    mEptzInfo.eptz_zoom_speed = 30;
+    mEptzInfo.eptz_dst_width = mSrcWidth;
+    mEptzInfo.eptz_dst_height = mSrcHeight;
+    mEptzInfo.camera_dst_width = mClipWidth;
+    mEptzInfo.camera_dst_height = mClipHeight;
+    //2K以上sensor建议使用1280x720数据,低于2K使用640x360
+    mEptzInfo.eptz_npu_width = 640;
+    mEptzInfo.eptz_npu_height = 360;
+    //V2远距离建议0.4，V3近距离建议0.6
+    mEptzInfo.eptz_facedetect_score_shold = 0.40;
+    mEptzInfo.eptz_zoom_speed = 1;
     mEptzInfo.eptz_fast_move_frame_judge = 5;
-    mEptzInfo.eptz_clip_ratio = 0.75;
-    mEptzInfo.eptz_face_small_ratio = -1;//0.07;
-    mEptzInfo.eptz_face_big_ratio = 10;//0.23;
-    mEptzInfo.eptz_threshold_x = (mEptzInfo.eptz_src_width - mEptzInfo.eptz_dst_width) / 8;
-    mEptzInfo.eptz_threshold_y = (mEptzInfo.eptz_src_height - mEptzInfo.eptz_dst_height) / 8;
+    mEptzInfo.eptz_threshold_x = 80;
+    mEptzInfo.eptz_threshold_y = 45;
     if (mEptzInfo.eptz_dst_width >= 1920) {
         mEptzInfo.eptz_iterate_x = 6;
         mEptzInfo.eptz_iterate_y = 3;
@@ -81,8 +78,8 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
            mEptzInfo.eptz_dst_width, mEptzInfo.eptz_dst_height, mEptzInfo.eptz_threshold_x,
            mEptzInfo.eptz_threshold_y, mEptzInfo.eptz_iterate_x, mEptzInfo.eptz_iterate_y, mClipRatio);
 
-    mLastXY[0] = (mEptzInfo.eptz_src_width - mEptzInfo.eptz_dst_width) / 2;
-    mLastXY[1] = (mEptzInfo.eptz_src_height - mEptzInfo.eptz_dst_height) / 2;
+    mLastXY[0] = 0;
+    mLastXY[1] = 0;
     mLastXY[2] = mEptzInfo.eptz_dst_width;
     mLastXY[3] = mEptzInfo.eptz_dst_height;
     eptzConfigInit(&mEptzInfo);
@@ -179,7 +176,7 @@ static RTTaskNode* createEptzFilter() {
  *****************************************/
 RTNodeStub node_stub_filter_eptz_demo {
     .mUid          = kStubRockitEPTZDemo,
-    .mName         = "rkeptzdemo",
+    .mName         = "rkeptz",
     .mVersion      = "v1.0",
     .mCreateObj    = createEptzFilter,
     .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },

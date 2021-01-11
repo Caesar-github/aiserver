@@ -13,12 +13,16 @@ if (${ENABLE_SAMPLE_NODE})
 endif()
 
 # node samples
-option(ENABLE_SAMPLE_NODE_EPTZ  "enable sample node eptz" OFF)
+option(ENABLE_SAMPLE_NODE_EPTZ  "enable sample node eptz" ON)
 if (${ENABLE_SAMPLE_NODE_EPTZ})
     include_directories(samples/filter/eptz)
     link_directories(samples/filter/eptz)
     link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so)
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so DESTINATION ../../oem/usr/lib/)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/eptz_zoom.conf")
+        set(ETC_DST "${PROJECT_SOURCE_DIR}/../../target/etc/")
+        file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/eptz_zoom.conf DESTINATION ${ETC_DST})
+    endif()
     set(SRC_FILES_VENDOR
         ${SRC_FILES_VENDOR}
         samples/filter/eptz/RTNodeVFilterEptzDemo.cpp
@@ -34,6 +38,7 @@ if (${ENABLE_SAMPLE_NODE_ROCKX})
             samples/filter/rockx/RTNodeVFilterRockx.cpp
         )
         message(STATUS "Build WITH rockx sample")
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/rockx/aicamera.json DESTINATION ../../oem/usr/share/aiserver/)
     else()
         message(STATUS "Build NONE rockx sample")
     endif()

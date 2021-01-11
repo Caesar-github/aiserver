@@ -195,7 +195,7 @@ static RTTaskNode* createRockxFilter() {
  *****************************************/
 RTNodeStub node_stub_filter_rockx {
     .mUid          = 0x09,
-    .mName         = "rockxdemo",
+    .mName         = "rockx",
     .mVersion      = "v1.0",
     .mCreateObj    = createRockxFilter,
     .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },

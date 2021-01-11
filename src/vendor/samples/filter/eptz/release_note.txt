@@ -1,3 +1,24 @@
+eptz V1.0.1：
+【主要更新】
+1.适配不同分辨率，避免特殊分辨率引起的crash问题。
+2.添加eptz场景，不同分辨率宽高比下，人物宽高保持原始比例，通过export eptz_geometric_support=1使能，会丢失部分画面信息，默认关闭。
+3.修复概率的Y轴方向抖动问题。
+
+eptz V1.0.0：
+【主要更新】
+1.修改单人/多人模式下zoom策略，提供eptz_zoom.conf调整适配不同FOV SENSOR，默认使用/data/eptz_zoom.conf
+--人脸范围占source源画面比例
+area_ratio_data:0.05,0.08,0.10,0.13,0.16,0.20,0.25,0.50,0.75,1.0
+--裁剪画面占source源数据比例
+clip_ratio_data:0.35,0.40,0.45,0.50,0.60,0.70,0.85,0.90,0.95,1.0
+
+最高支持20组数据扩展，可根据场景进行调节。提供480P，720P，1080P，1440P，2160P五组数据，针对不同预览分辨率自动动态选择
+通过touch /tmp/eptz_zoom_debug,动态打开zoom日志，显示当前人脸范围和裁剪比例数据 ：face_ratio[%.2f] eptz_clip_ratio[%.2f]
+
+2.eptz_algorithm.h头文件修改，移除V0.1.6接口及无用参数
+3.eptz_zoom_speed参数修改，可配1，2，3选择zoom速度，1代表速度最慢
+4.修复zoom过程中的宽高形变问题
+
 eptz V0.1.6：
 【主要更新】
 1.添加单人模式下缩放功能
