@@ -51,6 +51,7 @@
 
 #define ROCKX_HEAD_DETECT           "rockx_head_detect"
 #define ROCKX_FACE_DETECT_V2        "rockx_face_detect_v2"
+#define ROCKX_FACE_DETECT_V2_H      "rockx_face_detect_v2_h"
 #define ROCKX_FACE_DETECT_V3        "rockx_face_detect_v3"
 #define ROCKX_FACE_DETECT_V3_LARGE  "rockx_face_detect_v3_large"
 
@@ -272,6 +273,9 @@ RT_RET RTVFilterRockx::create(RtMetaData *config) {
         models[size++] = ROCKX_MODULE_OBJECT_TRACK;
     } else if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT_V2)){
         models[size++] = ROCKX_MODULE_FACE_DETECTION_V2;
+        models[size++] = ROCKX_MODULE_OBJECT_TRACK;
+    } else if (!util_strcasecmp(modelname, ROCKX_FACE_DETECT_V2_H)){
+        models[size++] = ROCKX_MODULE_FACE_DETECTION_V2_HORIZONTAL;
         models[size++] = ROCKX_MODULE_OBJECT_TRACK;
     } else if (!util_strcasecmp(modelname, ROCKX_HEAD_DETECT)){
         models[size++] = ROCKX_MODULE_HEAD_DETECTION;
@@ -604,7 +608,7 @@ RT_RET RTVFilterRockx::doFilter(RTMediaBuffer *src, RtMetaData *extraInfo, RTMed
     const char *model = reinterpret_cast<const char *>(ctx->mCfg.model);
     //RT_LOGD_IF(1, "procss begin(model:%s, size= %d)", model, src->getLength());
     if (!util_strcasecmp(model, ROCKX_FACE_DETECT_V2) || !util_strcasecmp(model, ROCKX_FACE_DETECT_V3) ||
-        !util_strcasecmp(model, ROCKX_FACE_DETECT_V3_LARGE)) {
+        !util_strcasecmp(model, ROCKX_FACE_DETECT_V2_H) || !util_strcasecmp(model, ROCKX_FACE_DETECT_V3_LARGE)) {
         err = faceDetect(src, dst->getMetaData(), &input_img);
     } else if(!util_strcasecmp(model, ROCKX_HEAD_DETECT)){
         err = headDetect(src, dst->getMetaData(), &input_img);

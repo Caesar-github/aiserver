@@ -62,12 +62,12 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     mEptzInfo.eptz_fast_move_frame_judge = 5;
     mEptzInfo.eptz_threshold_x = 80;
     mEptzInfo.eptz_threshold_y = 45;
-    if (mEptzInfo.eptz_dst_width >= 1920) {
+    if (mEptzInfo.camera_dst_width >= 1920) {
         mEptzInfo.eptz_iterate_x = 6;
         mEptzInfo.eptz_iterate_y = 3;
-    } else if (mEptzInfo.eptz_dst_width >= 1280) {
-        mEptzInfo.eptz_iterate_x = 4;
-        mEptzInfo.eptz_iterate_y = 2;
+    } else if (mEptzInfo.camera_dst_width >= 1280) {
+        mEptzInfo.eptz_iterate_x = 6;
+        mEptzInfo.eptz_iterate_y = 3;
     } else {
         mEptzInfo.eptz_iterate_x = 4;
         mEptzInfo.eptz_iterate_y = 2;

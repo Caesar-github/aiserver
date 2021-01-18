@@ -4,43 +4,42 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 set(SRC_DEPEND_LIBS rockit dl)
 
 # vendor custom node
-option(ENABLE_SAMPLE_NODE  "enable sample node" ON)
+option(ENABLE_SAMPLE_NODE  "enable sample node" OFF)
 if (${ENABLE_SAMPLE_NODE})
-    include_directories(samples)
     set(SRC_FILES_VENDOR
-        samples/SampleNode.cpp
+        SampleNode.cpp
     )
 endif()
 
-# node samples
-option(ENABLE_SAMPLE_NODE_EPTZ  "enable sample node eptz" ON)
+# node
+option(ENABLE_SAMPLE_NODE_EPTZ  "enable node eptz" ON)
 if (${ENABLE_SAMPLE_NODE_EPTZ})
-    include_directories(samples/filter/eptz)
-    link_directories(samples/filter/eptz)
-    link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so)
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/libeptz.so DESTINATION ../../oem/usr/lib/)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/eptz_zoom.conf")
+    include_directories(filter/eptz)
+    link_directories(filter/eptz)
+    link_libraries(${CMAKE_CURRENT_SOURCE_DIR}/filter/eptz/libeptz.so)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/filter/eptz/libeptz.so DESTINATION ../../oem/usr/lib/)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/filter/eptz/eptz_zoom.conf")
         set(ETC_DST "${PROJECT_SOURCE_DIR}/../../target/etc/")
-        file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/eptz/eptz_zoom.conf DESTINATION ${ETC_DST})
+        file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/filter/eptz/eptz_zoom.conf DESTINATION ${ETC_DST})
     endif()
     set(SRC_FILES_VENDOR
         ${SRC_FILES_VENDOR}
-        samples/filter/eptz/RTNodeVFilterEptzDemo.cpp
+        filter/eptz/RTNodeVFilterEptzDemo.cpp
     )
 endif()
 
-option(ENABLE_SAMPLE_NODE_ROCKX  "enable sample node rockx" OFF)
+option(ENABLE_SAMPLE_NODE_ROCKX  "enable node rockx" OFF)
 if (${ENABLE_SAMPLE_NODE_ROCKX})
     if (${USE_ROCKX})
         set(SRC_FILES_VENDOR
             ${SRC_FILES_VENDOR}
-            samples/filter/rockx/RTVFilterRockx.cpp
-            samples/filter/rockx/RTNodeVFilterRockx.cpp
+            filter/rockx/RTVFilterRockx.cpp
+            filter/rockx/RTNodeVFilterRockx.cpp
         )
-        message(STATUS "Build WITH rockx sample")
-        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/samples/filter/rockx/aicamera.json DESTINATION ../../oem/usr/share/aiserver/)
+        message(STATUS "Build WITH rockx ")
+        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/filter/rockx/aicamera.json DESTINATION ../../oem/usr/share/aiserver/)
     else()
-        message(STATUS "Build NONE rockx sample")
+        message(STATUS "Build NONE rockx ")
     endif()
 endif()
 
