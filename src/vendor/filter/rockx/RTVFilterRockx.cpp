@@ -62,6 +62,7 @@ FILE *rockx_input = nullptr;
 static const char* sLibRockxPath[] = {
     "/vendor/lib",  // android
     "/system/lib",  // android
+    "/oem/usr/lib",  // linux
     "/usr/lib"      // linux
 };
 
