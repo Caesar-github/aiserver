@@ -16,6 +16,7 @@
  */
 #include <math.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "RTNodeVFilterEptzDemo.h"          // NOLINT
 #include "rockit/RTNodeCommon.h"
@@ -60,6 +61,7 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     mEptzInfo.eptz_facedetect_score_shold = 0.40;
     mEptzInfo.eptz_zoom_speed = 1;
     mEptzInfo.eptz_fast_move_frame_judge = 5;
+    mEptzInfo.eptz_zoom_frame_judge = 10;
     mEptzInfo.eptz_threshold_x = 80;
     mEptzInfo.eptz_threshold_y = 45;
     if (mEptzInfo.camera_dst_width >= 1920) {
@@ -91,6 +93,20 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
     RT_RET         err       = RT_OK;
     RTMediaBuffer *srcBuffer = RT_NULL;
     RTMediaBuffer *dstBuffer = RT_NULL;
+
+    if (!access("/tmp/eptz_mode1", 0)){
+        system("rm /tmp/eptz_mode1");
+        mEptzInfo.eptz_fast_move_frame_judge = 5;
+        mEptzInfo.eptz_zoom_frame_judge = 10;
+        setEptzMode(1);
+    }
+
+    if (!access("/tmp/eptz_mode2", 0)){
+        system("rm /tmp/eptz_mode2");
+        mEptzInfo.eptz_fast_move_frame_judge = 10;
+        mEptzInfo.eptz_zoom_frame_judge = 15;
+        setEptzMode(2);
+    }
 
     // 此处是上级NN人脸检测节点输出人脸区域信息，SDK默认数据流路径是scale1->NN->EPTZ
     if (context->hasInputStream("image:rect")) {

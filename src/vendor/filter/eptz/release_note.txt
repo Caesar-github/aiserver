@@ -1,3 +1,16 @@
+eptz V1.0.5：
+【主要更新】
+1.优化画面移动效果。
+2.eptz_algorithm.h头文件修改
+添加接口：
+  1）void changeEptzConfig(char *config_path);
+  -- 动态切换zoom配置文件
+  2）void setEptzMode(INT32 mode);
+  -- 添加模式切换功能，默认mode 1，灵动模式。可设置为mode 2，会议模式。
+  -- 灵动模式：人物跟踪灵敏，人物移动中就进行画面跟随。
+  -- 会议模式：人物停止移动后，进行画面切换。
+3.EptzInitInfo添加eptz_zoom_frame_judge变量，控制zoom灵敏度。
+
 eptz V1.0.3：
 【主要更新】
 1.优化zoom效果。

@@ -6,7 +6,7 @@
 
 文件标识：RK-XX-XX-0000
 
-发布版本：V1.0.1
+发布版本：V1.0.2
 
 日期：2021-01-18
 
@@ -59,7 +59,7 @@ Rockchip Electronics Co., Ltd.
 | ---------- | -------- | -------- | ------------ |
 | 2021/01/11 | 1.0.0    | 林其浩   | 初始版本     |
 | 2021/01/18 | 1.0.1    | 林其浩   | 添加Q&A章节  |
-|            |          |          |              |
+| 2021/03/05 | 1.0.2    | 林其浩   | 内容完善     |
 
 
 
@@ -84,6 +84,8 @@ app/aiserver/src/vendor/samples/filter/eptz/
 ```
 
 具体接口可参考eptz_algorithm.h文件，eptz版本说明详见app\aiserver\src\vendor\samples\filter\eptz\release_note.txt。
+
+从v1.0.5版本开始支持两种模式：1.灵动模式；2.会议模式。
 
 ### EPTZ功能验证
 
@@ -128,6 +130,8 @@ RV1126/RV1109显示预期效果:
 * touch /tmp/eptz_face_debug：动态输出人脸坐标信息
 * touch /tmp/eptz_zoom_debug：动态打开zoom日志，显示当前人脸范围和裁剪比例数据
 * 设置环境变量export eptz_log_level=3：打开eptz控制算法，坐标计算debug信息
+* touch /tmp/eptz_mode1: 动态切换到灵动模式，跟随灵敏。
+* touch /tmp/eptz_mode2: 动态切换到会议模式，人物稳定后开始画面切换。
 
 ## 人脸检测算法集成说明
 
@@ -216,7 +220,8 @@ app/aiserver/src/vendor/samples/filter/rockx/
    * eptz_npu_width、eptz_npu_height：输入算法的图像分辨率大小。
    * eptz_facedetect_score_shold：人脸检测算法数据中的阈值，通过该值可以将低质量的人脸过滤排除。
    * eptz_zoom_speed：zoom速度调整，可设置1,2,3，默认为1，其中3的速度最快。
-   * eptz_fast_move_frame_judge：忽略人物x帧内快速移动的数据。
+   * eptz_fast_move_frame_judge：忽略人物x帧内快速移动的数据，人物移动防抖阈值。
+   * eptz_zoom_frame_judge：忽略人物x帧内zoom比例变化数据，人物移动ZOOM防抖阈值。
    * eptz_threshold_x、eptz_threshold_y: x，y方向移动阈值，当x，y的范围变化超过设定值时进行移动调整。
    * mLastXY：初始化时，第一次显示的范围区域大小。
 
@@ -225,7 +230,11 @@ app/aiserver/src/vendor/samples/filter/rockx/
    * 可自行添加打印查看人脸检测算法帧率，AI帧率过低则可能存在现象，可以考虑算法优化。
    * 小幅度修改eptz_iterate_x和eptz_iterate_y的值可加快跟随速度，但修改值太大会造成画面移动不顺滑。
 
-4. eptz_zoom.conf需要如何调整？其中参数对应关系指什么？
+4. 是否支持动态调整eptz初始化参数，如何进行修改配置?
+
+   支持动态修改阈值等参数，可在open或process方法中直接修改mEptzInfo对象参数，可参考RTNodeVFilterEptzDemo.cpp。
+
+5. eptz_zoom.conf需要如何调整？其中参数对应关系指什么？
 
    area_ratio_data 是检测到的人脸范围，clip_ratio_data  是对应的裁剪范围。
 
@@ -246,7 +255,7 @@ app/aiserver/src/vendor/samples/filter/rockx/
 
    SDK默认提供最大分辨率为1440P和2160P的配置文件eptz_zoom-2560x1440.conf和eptz_zoom-3840x2160.conf。对应的NPU输入为1280x720。
 
-   用户定制对应eptz_zoom.conf文件时，通过touch /tmp/eptz_zoom_debug动态打开日志，查看当前人脸范围和裁剪比例数据 face_ratio[%.2f] eptz_clip_ratio[%.2f]。固定使用同一预览分辨率，分别在0.5m、1m、2m、3m|、5m（**距离仅作举例说明，可以减少/增加其中的部分数据**）等距离测量单人及多人时的face_ratio数值，配上期望的eptz_clip_ratio数值。如在1080P分辨率下，测试出一组满意的eptz_clip_ratio数据后，如:
+   用户定制对应eptz_zoom.conf文件时，通过touch /tmp/eptz_zoom_debug动态打开日志，查看当前人脸范围和裁剪比例数据 face_ratio[%.2f] eptz_clip_ratio[%.2f]。固定使用同一预览分辨率，分别在0.5m、1m、2m、3m|、5m（**距离仅作举例说明，可以减少或增加其中的部分数据**）等距离测量单人及多人时的face_ratio数值，配上期望的eptz_clip_ratio数值。如在1080P分辨率下，测试出一组满意的eptz_clip_ratio数据后，如:
 
    ```shell
    area_ratio_data:0.035,0.07,0.3,0.55,0.75,1.0
@@ -265,7 +274,11 @@ app/aiserver/src/vendor/samples/filter/rockx/
 
    若存在360P或其他分辨率，则会自适应最接近的分辨率使用其参数。clip_ratio_data-480p、clip_ratio_data-720p、clip_ratio_data-1080p、clip_ratio_data-1440p、clip_ratio_data-2160p数据都存在eptz_zoomm.conf即可。
 
-5. 其他
+6. 是否支持eptz_zoom.conf文件动态修改？
+
+   支持，可调用changeEptzConfig接口，使用其他eptz_zoon.conf文件来进行参数更新。
+
+7. 其他
 
    其他EPTZ问题，建议redmine上提交，并复上对应的日志以及视频文件。贵司将安排人员进行分析解决。
 

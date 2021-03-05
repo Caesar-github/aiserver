@@ -38,7 +38,8 @@ typedef struct _EptzInitInfo {
   INT32 eptz_iterate_y;   //人脸跟踪Y方向速度
   float eptz_facedetect_score_shold; // AI人脸质量分阈值
   INT32 eptz_fast_move_frame_judge;  //人物移动防抖阈值
-  INT32 eptz_zoom_speed;             //人脸跟踪ZOOM/PAN效果转换速度
+  INT32 eptz_zoom_frame_judge;       //人物移动ZOOM防抖阈值
+  INT32 eptz_zoom_speed;             //人脸跟踪ZOOM效果转换速度
 } EptzInitInfo;
 
 /*
@@ -85,5 +86,17 @@ bool isMoving();
  * custom_postion: eptz初始移动位置
  */
 void reSetPosition(INT32 *custom_postion);
+
+/*
+ * 说明：动态切换eptz_zoom.confg文件
+ */
+void changeEptzConfig(char *config_path);
+
+/*
+ * 说明：动态切换eptz模式
+ * parameter
+ * mode模式: 1：灵动模式，跟随灵敏。 2：会议模式，画面稳定。
+ */
+void setEptzMode(INT32 mode);
 
 #endif // EPTZ_ALGORITHM_H_
