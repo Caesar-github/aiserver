@@ -4,7 +4,7 @@
 
 #include "ai_task_factory.h"
 #include <assert.h>
-
+#include "logger/log.h"
 #ifdef HAVE_STASTERIA
 #include "st_task_handler.h"
 #elif HAVE_ROCKX
