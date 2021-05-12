@@ -201,7 +201,7 @@ int32_t drm_free(int32_t fd, uint32_t  handle) {
 #include <errno.h> /* for EINVAL */
 
 inline void *drm_mmap(void *addr, uint32_t  length, int32_t prot, int32_t flags,
-                             int32_t fd, loff_t offset) {
+                             int32_t fd, loff32_t offset) {
     /* offset must be aligned to 4096 (not necessarily the page size) */
     if (offset & 4095) {
         errno = EINVAL;

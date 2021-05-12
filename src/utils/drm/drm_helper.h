@@ -18,7 +18,7 @@
 #ifndef AI_SREVER_UTIL_DRM_H_
 #define AI_SREVER_UTIL_DRM_H_
 
-typedef long long loff_t;
+typedef long long loff32_t;
 
 int32_t drm_open();
 int32_t drm_close(int32_t fd);
@@ -31,7 +31,7 @@ int32_t drm_free(int32_t  fd, uint32_t handle);
 int32_t drm_get_info_from_name(int32_t fd, uint32_t name, uint32_t *handle, int32_t *size);
 int32_t drm_get_name_from_handle(int32_t fd, uint32_t handle, int32_t *name);
 
-void   *drm_mmap(void *addr, uint32_t length, int32_t  prot, int32_t  flags, int32_t  fd, loff_t offset);
+void   *drm_mmap(void *addr, uint32_t length, int32_t  prot, int32_t  flags, int32_t  fd, loff32_t offset);
 int32_t drm_map(int32_t fd, int32_t handle, uint32_t length, int32_t prot,
                    int32_t flags, int32_t offset, void **ptr, uint32_t heaps);
 
