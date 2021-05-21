@@ -86,6 +86,8 @@ class AIUVCGraph {
     RT_RET openAIMatting();
     RT_RET closeAIMatting();
 
+    RT_RET setFaceAE(int enable);
+
     RT_RET waitUntilDone();
 
     void *getCtx() { return mCtx; }

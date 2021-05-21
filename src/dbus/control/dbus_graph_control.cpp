@@ -56,6 +56,14 @@ int32_t DBusGraphControl::SetZoom(const double &val) {
 
     return -1;
 }
+int32_t DBusGraphControl::EnableFaceAE(const int32_t &enabled){
+    if (NULL != mGraphListener) {
+        return mGraphListener->setFaceAE(enabled);
+    }
+
+    return -1;
+
+}
 
 int32_t DBusGraphControl::EnableAIAlgorithm(const std::string &type) {
     if (NULL != mGraphListener) {

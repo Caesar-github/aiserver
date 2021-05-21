@@ -62,6 +62,12 @@ if (DEFINED MEDIASERVER_CONF_PREFIX)
 add_definitions(-DMEDIASERVER_CONF_PREFIX=${MEDIASERVER_CONF_PREFIX})
 endif()
 
+option(DBSERVER_SUPPORT  "enbale dbserver" OFF)
+if (${DBSERVER_SUPPORT})
+    add_definitions(-DDBSERVER_SUPPORT)
+    set(AISERVER_LIB ${AISERVER_LIB} IPCProtocol)
+endif()
+
 option(ENABLE_OSD_SERVER  "enbale osd server" OFF)
 if (${ENABLE_OSD_SERVER_ON})
     find_package(FreeType2 REQUIRED)
@@ -138,7 +144,7 @@ set(AISERVER_LIB ${AISERVER_LIB} rockit -Wl,--whole-archive ${VENDOR_STATIC} -Wl
 
 add_executable(aiserver ${AI_SERVER_SRC} ${ST_ASTERIA_SRC})
 target_include_directories(aiserver PUBLIC ${AI_SERVER_INC})
-target_link_libraries(aiserver ${AISERVER_LIB})
+target_link_libraries(aiserver ${AISERVER_LIB} PkgConfig::JSON-C)
 add_dependencies(aiserver dbus_meida_control_xml2cppTask)
 add_dependencies(aiserver dbus_dbserver_xml2cppTask)
 add_dependencies(aiserver dbus_storage_manager_xml2cppTask)

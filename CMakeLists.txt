@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(aiserver LANGUAGES CXX C)
-
+include(FindPkgConfig)
+pkg_check_modules (JSON-C REQUIRED IMPORTED_TARGET json-c)
 set(DESCRIPTION "aiserver projects for smart screen")
 
 set(PROJECT_THIRDPARTY_DIR "${CMAKE_SOURCE_DIR}/thirdparty")

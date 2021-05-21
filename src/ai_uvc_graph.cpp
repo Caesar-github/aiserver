@@ -72,6 +72,7 @@
 #define RT_FEATURE_UVC_MASK         0x0000000f
 #define RT_FEATURE_NN_MASK          0x000000f0
 #define RT_FEATURE_AIMATTING_MASK   0x00000f00
+#define RT_FEATURE_FACEAE_MASK      0x0000f000
 
 #define RT_FEATURE_UVC              0x00000001
 #define RT_FEATURE_EPTZ             0x00000002
@@ -82,6 +83,7 @@
 
 #define RT_FEATURE_NN               0x00000010
 #define RT_FEATURE_AIMATTING        0x00000100
+#define RT_FEATURE_FACEAE           0x00001000
 
 #define ST_ASTERIA_WIDTH            1280
 #define ST_ASTERIA_HEIGHT           720
@@ -340,12 +342,15 @@ RT_RET AIUVCGraph::selectLinkMode() {
     AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
     RT_ASSERT(ctx->mTaskGraph != RT_NULL);
     ctx->mTaskGraph->clearLinkShips();
-    RT_LOGD("ctx->mFeature = 0x%x &uvc= 0x%x", ctx->mFeature, ctx->mFeature & RT_FEATURE_UVC_MASK);
+    RT_LOGD("ctx->mFeature = 0x%x &uvc= 0x%x,faceae=0x%x", ctx->mFeature, ctx->mFeature & RT_FEATURE_UVC_MASK
+                                                                       ,(ctx->mFeature & RT_FEATURE_FACEAE_MASK));
     if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == 0) {
         ctx->mTaskGraph->selectLinkMode((ctx->mFeature & RT_FEATURE_NN_MASK) != 0
                                             ? "nn_isp" : "none",
                                          (ctx->mFeature & RT_FEATURE_AIMATTING_MASK) != 0
-                                            ? "aimatting" : "none");
+                                            ? "aimatting" : "none",
+                                         (ctx->mFeature & RT_FEATURE_FACEAE_MASK) != 0
+                                            ? "uvc_faceae" : "none");
     } else {
         INT32 uvcMask = ctx->mFeature & RT_FEATURE_UVC_MASK;
         switch (uvcMask) {
@@ -383,7 +388,9 @@ RT_RET AIUVCGraph::selectLinkMode() {
 
         ctx->mTaskGraph->selectLinkMode(nnlink,
                                          (ctx->mFeature & RT_FEATURE_AIMATTING_MASK) != 0
-                                            ? "aimatting" : "none");
+                                            ? "aimatting" : "none",
+                                         (ctx->mFeature & RT_FEATURE_FACEAE_MASK) != 0
+                                            ? "uvc_faceae" : "none");
     }
     return ret;
 }
@@ -1249,6 +1256,29 @@ RT_RET AIUVCGraph::setZoomPtz(RT_BOOL isZoom) {
     ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &dstConfig);
     CHECK_EQ(ret, RT_OK);
 
+__FAILED:
+    return ret;
+}
+RT_RET AIUVCGraph::setFaceAE(int enable) {
+    RT_RET ret = RT_OK;
+    RtMetaData params;
+
+    AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
+    RT_LOGD("ctx feature 0x%x setFaceAE", ctx->mFeature);
+    if (!ctx->mTaskGraph->hasLinkMode("uvc_faceae")) {
+        RT_LOGE("link mode(uvc_faceae) unsupport");
+        return RT_ERR_UNSUPPORT;
+    }
+    if ((enable)){
+        ctx->mFeature |= RT_FEATURE_FACEAE_MASK;
+    } else {
+        ctx->mFeature &= ~RT_FEATURE_FACEAE_MASK;
+        params.setInt32(kKeyTaskNodeId, 25);
+        params.setCString(kKeyPipeInvokeCmd, "set_faceae_config");
+        params.setInt32("enable", 0);
+        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
+    }
+    selectLinkMode();
 __FAILED:
     return ret;
 }

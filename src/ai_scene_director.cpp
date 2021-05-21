@@ -11,9 +11,7 @@
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
-
 #define LOG_TAG "AISceneDirector"
-
 namespace rockchip {
 namespace aiserver {
 
@@ -203,6 +201,14 @@ int32_t AISceneDirector::setZoom(const double &val) {
         mUVCGraph->setZoom(zoomVal);
     }
     LOG_INFO("setZoom ok\n");
+    return 0;
+}
+int32_t AISceneDirector::setFaceAE(const int32_t &enabled) {
+    LOG_INFO("setFaceAE enabled:(%d)\n", enabled);
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->setFaceAE(enabled);
+    }
+    LOG_INFO("setFaceAE ok\n");
     return 0;
 }
 

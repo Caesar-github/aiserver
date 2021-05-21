@@ -42,6 +42,15 @@ if (${ENABLE_SAMPLE_NODE_ROCKX})
         message(STATUS "Build NONE rockx ")
     endif()
 endif()
+# vendor faceae node
+option(ENABLE_SAMPLE_NODE_FACEAE  "enable faceae node" OFF)
+if (${ENABLE_SAMPLE_NODE_FACEAE})
+    if (${DBSERVER_SUPPORT})
+	set(SRC_FILES_VENDOR
+            ${SRC_FILES_VENDOR}
+	    filter/faceae/RTNodeVFilterFaceAEDemo.cpp )
+    endif()
+endif()
 
 add_library(${VENDOR_STATIC} STATIC ${SRC_FILES_VENDOR})
 set_target_properties(${VENDOR_STATIC} PROPERTIES FOLDER "vendor")

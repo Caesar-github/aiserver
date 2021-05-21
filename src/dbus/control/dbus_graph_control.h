@@ -35,6 +35,7 @@ class RTGraphListener {
 
     virtual int32_t setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &enabled) = 0;
     virtual int32_t setZoom(const double &val) = 0;
+    virtual int32_t setFaceAE(const int32_t &enabled) = 0;
     virtual int32_t enableAIAlgorithm(const std::string &type) = 0;
     virtual int32_t disableAIAlgorithm(const std::string &type) = 0;
     virtual int32_t updateAIAlgorithmParams(const std::string &type) = 0;
@@ -61,6 +62,7 @@ class DBusGraphControl : public control::graph_adaptor,
     // UVC
     int32_t EnableEPTZ(const int32_t &enabled);
     int32_t SetZoom(const double &val);
+    int32_t EnableFaceAE(const int32_t &enabled);
 
     // AI
     int32_t EnableAIAlgorithm(const std::string &type);
