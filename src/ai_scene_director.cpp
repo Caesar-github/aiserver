@@ -5,7 +5,7 @@
 #include "ai_scene_director.h"
 #include "logger/log.h"
 
-#include "rockit/RTUVCGraph.h"
+#include "ai_uvc_graph.h"
 #include "rockit/RTMediaBuffer.h"
 
 #ifdef LOG_TAG
@@ -97,7 +97,7 @@ int32_t AISceneDirector::setup() {
 int32_t AISceneDirector::prepareUVCGraph() {
     std::lock_guard<std::mutex> lock(mOpMutex);
     if (mUVCGraph == NULL) {
-        mUVCGraph = new RTUVCGraph("aiuvc");
+        mUVCGraph = new AIUVCGraph("aiuvc");
         mUVCGraph->observeUVCOutputStream(std::bind(&AISceneDirector::uvc_data_output_callback, this, std::placeholders::_1));
         mUVCGraph->observeNNOutputStream(std::bind(&AISceneDirector::nn_data_output_callback, this, std::placeholders::_1));
         mUVCGraph->observeMattingOutputStream(std::bind(&AISceneDirector::ai_matting_output_callback, this, std::placeholders::_1));
@@ -187,7 +187,7 @@ int32_t AISceneDirector::observeGraphOutput(const std::string &appName, const in
     return 0;
 }
 
-int32_t AISceneDirector::setEPTZ(const RT_EPTZ_MODE &mode, const int32_t &enabled) {
+int32_t AISceneDirector::setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &enabled) {
     LOG_INFO("seteptz mode:(%d) val:(%d)\n", mode, enabled);
     if (nullptr != mUVCGraph) {
         mUVCGraph->setEptz(mode, enabled);

@@ -9,7 +9,7 @@
 #include "ai_feature_retriver.h"
 #include "ai_task_manager.h"
 #include "shmc/shm_control_uvc.h"
-#include "rockit/RTUVCGraph.h"
+#include "ai_uvc_graph.h"
 
 namespace rockchip {
 namespace aiserver {
@@ -42,7 +42,7 @@ class AISceneDirector : public RTGraphListener {
     virtual int32_t stop(const std::string &appName);
     virtual int32_t observeGraphOutput(const std::string &appName, const int32_t &enable);
 
-    virtual int32_t setEPTZ(const RT_EPTZ_MODE &mode, const int32_t &enabled);
+    virtual int32_t setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &enabled);
     virtual int32_t setZoom(const double &val);
 
     virtual int32_t enableAIAlgorithm(const std::string &type);
@@ -69,7 +69,7 @@ class AISceneDirector : public RTGraphListener {
 
  private:
     std::mutex   mOpMutex;
-    RTUVCGraph  *mUVCGraph;
+    AIUVCGraph  *mUVCGraph;
     AIFeatureRetriver *mAIFeatureRetriver;
     int32_t      mUVCGraphRef         = 0;
     int32_t      mEnableUVC           = 0;

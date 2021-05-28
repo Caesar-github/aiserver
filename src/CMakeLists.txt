@@ -49,7 +49,7 @@ set(AISERVER_LIB
     dbus_cpp::dbus_cpp
     ${CMAKE_THREAD_LIBS_INIT})
 
-set(AI_SERVER_SRC aiserver.cpp ai_scene_director.cpp ai_feature_retriver.cpp)
+set(AI_SERVER_SRC aiserver.cpp ai_scene_director.cpp ai_feature_retriver.cpp ai_uvc_graph.cpp)
 aux_source_directory(utils/thread AI_SERVER_SRC)
 aux_source_directory(utils/drm    AI_SERVER_SRC)
 aux_source_directory(task         AI_SERVER_SRC)
