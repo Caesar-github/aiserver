@@ -31,8 +31,11 @@ class RTNodeVFilterEptz : public RTTaskNode {
     virtual RT_RET open(RTTaskNodeContext *context);
     virtual RT_RET process(RTTaskNodeContext *context);
     virtual RT_RET close(RTTaskNodeContext *context);
+ protected:
+    virtual RT_RET invokeInternal(RtMetaData *meta);
 
  private:
+    RtMutex        *mLock;
     RTRect          mRoiRegion;
     INT32           mSrcWidth;
     INT32           mSrcHeight;

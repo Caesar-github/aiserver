@@ -29,9 +29,12 @@
 #define kStubRockitEPTZDemo                MKTAG('e', 'p', 'd', 'm')
 
 RTNodeVFilterEptz::RTNodeVFilterEptz() {
+    mLock = new RtMutex();
+    RT_ASSERT(RT_NULL != mLock);
 }
 
 RTNodeVFilterEptz::~RTNodeVFilterEptz() {
+    rt_safe_delete(mLock);
 }
 
 RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
@@ -93,6 +96,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
     RT_RET         err       = RT_OK;
     RTMediaBuffer *srcBuffer = RT_NULL;
     RTMediaBuffer *dstBuffer = RT_NULL;
+    RtMutex::RtAutolock autoLock(mLock);
 
     if (!access("/tmp/eptz_mode1", 0)){
         system("rm /tmp/eptz_mode1");
@@ -122,7 +126,6 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
                 continue;
 
             count--;
-
             void* result = getAIDetectResults(dstBuffer);
             RTRknnAnalysisResults *nnResult  = reinterpret_cast<RTRknnAnalysisResults *>(result);
             if (nnResult != RT_NULL) {
@@ -181,6 +184,38 @@ RT_RET RTNodeVFilterEptz::close(RTTaskNodeContext *context) {
     RT_RET err = RT_OK;
 
     return err;
+}
+
+RT_RET RTNodeVFilterEptz::invokeInternal(RtMetaData *meta) {
+    const char *command;
+    if (RT_NULL == meta) {
+        return RT_ERR_NULL_PTR;
+    }
+    RtMutex::RtAutolock autoLock(mLock);
+    meta->findCString(kKeyPipeInvokeCmd, &command);
+    RT_LOGD("invoke(%s) internally.", command);
+    RTSTRING_SWITCH(command) {
+      RTSTRING_CASE("set_eptz_config"):
+        RT_ASSERT(meta->findInt32(OPT_VIDEO_WIDTH, &mEptzInfo.eptz_src_width));
+        RT_ASSERT(meta->findInt32(OPT_VIDEO_HEIGHT, &mEptzInfo.eptz_src_height));
+        mEptzInfo.eptz_dst_width = mEptzInfo.eptz_src_width;
+        mEptzInfo.eptz_dst_height = mEptzInfo.eptz_src_height;
+        mSrcWidth = mEptzInfo.eptz_src_width;
+        mSrcHeight = mEptzInfo.eptz_src_height;
+        mLastXY[0] = 0;
+        mLastXY[1] = 0;
+        mLastXY[2] = mEptzInfo.eptz_dst_width;
+        mLastXY[3] = mEptzInfo.eptz_dst_height;
+        RT_LOGE("mEptzInfo.eptz_src_width=%d mEptzInfo.eptz_src_height=%d mClipWidth=%d mClipHeight=%d",
+                 mEptzInfo.eptz_src_width, mEptzInfo.eptz_src_height, mClipWidth, mClipHeight);
+        eptzConfigInit(&mEptzInfo);
+        break;
+      default:
+        RT_LOGD("unsupported command=%d", command);
+        break;
+    }
+
+    return RT_OK;
 }
 
 static RTTaskNode* createEptzFilter() {
