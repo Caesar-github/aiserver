@@ -46,6 +46,8 @@ class RTNodeVFilterEptz : public RTTaskNode {
     INT32           mClipHeight;
     INT32           mLastXY[4];
     INT32           mTempXY[4];
+    INT32           mSequeFrame;
+    INT32           mSequeEptz;
     EptzInitInfo    mEptzInfo;
 };
 

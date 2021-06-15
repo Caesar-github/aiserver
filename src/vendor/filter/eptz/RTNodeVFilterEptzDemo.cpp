@@ -88,6 +88,8 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     mLastXY[2] = mEptzInfo.eptz_dst_width;
     mLastXY[3] = mEptzInfo.eptz_dst_height;
     eptzConfigInit(&mEptzInfo);
+    mSequeFrame = 0;
+    mSequeEptz = 0;
 
     return RT_OK;
 }
@@ -115,10 +117,11 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
     // 此处是上级NN人脸检测节点输出人脸区域信息，SDK默认数据流路径是scale1->NN->EPTZ
     if (context->hasInputStream("image:rect")) {
         INT32 count = context->inputQueueSize("image:rect");
-        if(count == 0){
+        if(count == 0 && mSequeEptz < mSequeFrame){
             EptzAiData eptz_ai_data;
             eptz_ai_data.face_count = 0;
             calculateClipRect(&eptz_ai_data, mLastXY, true, 5);
+            mSequeEptz++;
         }
         while (count) {
             dstBuffer = context->dequeInputBuffer("image:rect");
@@ -128,7 +131,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
             count--;
             void* result = getAIDetectResults(dstBuffer);
             RTRknnAnalysisResults *nnResult  = reinterpret_cast<RTRknnAnalysisResults *>(result);
-            if (nnResult != RT_NULL) {
+            if (nnResult != RT_NULL && mSequeEptz < mSequeFrame) {
                 RTRect result;
                 INT32 faceCount = nnResult->counter;
                 RT_RET ret = RT_OK;
@@ -145,6 +148,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
                   }
                 }
                 calculateClipRect(&eptz_ai_data, mLastXY);
+                mSequeEptz++;
                 if(eptz_ai_data.face_data)
                   free(eptz_ai_data.face_data);
             }
@@ -161,6 +165,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
         if (srcBuffer == RT_NULL)
             continue;
         count--;
+        mSequeFrame++;
         INT32 streamId = context->getOutputInfo()->streamId();
         dstBuffer = srcBuffer;
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, (INT32)mLastXY[0] % 2 != 0 ? (INT32)mLastXY[0] - 1 : (INT32)mLastXY[0]);
