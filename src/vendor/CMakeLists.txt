@@ -46,10 +46,23 @@ endif()
 option(ENABLE_SAMPLE_NODE_FACEAE  "enable faceae node" OFF)
 if (${ENABLE_SAMPLE_NODE_FACEAE})
     if (${DBSERVER_SUPPORT})
-	set(SRC_FILES_VENDOR
+       set(SRC_FILES_VENDOR
             ${SRC_FILES_VENDOR}
-	    filter/faceae/RTNodeVFilterFaceAEDemo.cpp )
+           filter/faceae/RTNodeVFilterFaceAEDemo.cpp )
     endif()
+endif()
+
+option(ENABLE_SAMPLE_NODE_VIDEO_OUTPUT "enable node video output" OFF)
+if(${ENABLE_SAMPLE_NODE_VIDEO_OUTPUT})
+    set(SRC_DEPEND_LIBS ${SRC_DEPEND_LIBS} drm)
+    set(INCLUDE_RKVO
+        filter/rkvo)
+    include_directories(${INCLUDE_RKVO})
+    set(SRC_FILES_VENDOR
+        ${SRC_FILES_VENDOR}
+        filter/rkvo/RTNodeVFilterVideoOutput.cpp
+        )
+    message("Build with rkvo")
 endif()
 
 # zoom node
