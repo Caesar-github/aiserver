@@ -27,7 +27,7 @@
 
 #define LOG_TAG "RTNodeVFilterEptz"
 #define kStubRockitEPTZDemo                MKTAG('e', 'p', 'd', 'm')
-
+#define UVC_DYNAMIC_DEBUG_USE_TIME_CHECK "/tmp/uvc_use_time"
 RTNodeVFilterEptz::RTNodeVFilterEptz() {
     mLock = new RtMutex();
     RT_ASSERT(RT_NULL != mLock);
@@ -165,9 +165,88 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
         if (srcBuffer == RT_NULL)
             continue;
         count--;
+        INT32 streamId = context->getInputInfo()->streamId();
+        RtMetaData *inputMeta = srcBuffer->extraMeta(streamId);
+        int64_t pts = 0;
+        int32_t seq = 0;
+        inputMeta->findInt64(kKeyFramePts, &pts);
+        inputMeta->findInt32(kKeyFrameSequence, &seq);
+
         mSequeFrame++;
-        INT32 streamId = context->getOutputInfo()->streamId();
+        streamId = context->getOutputInfo()->streamId();
+
+        if (!access(UVC_DYNAMIC_DEBUG_USE_TIME_CHECK, 0)) {
+            int32_t use_time_us, now_time_us;
+            struct timespec now_tm = {0, 0};
+            clock_gettime(CLOCK_MONOTONIC, &now_tm);
+            now_time_us = now_tm.tv_sec * 1000000LL + now_tm.tv_nsec / 1000; // us
+            use_time_us = now_time_us - pts;
+            RT_LOGE("isp->aiserver seq:%ld latency time:%d us, %d ms\n",seq, use_time_us, use_time_us / 1000);
+        }
+/*
+        if(isMoving()){
+            RT_LOGE("eptz frame moving");
+            rga_info_t srcInfo, dstInfo;
+            rt_memset(&srcInfo, 0, sizeof(srcInfo));
+            rt_memset(&dstInfo, 0, sizeof(dstInfo));
+
+            srcInfo.fd = srcBuffer->getFd();
+            if (srcInfo.fd < 0) {
+                srcInfo.virAddr = reinterpret_cast<void *>(srcBuffer->getData());
+                srcInfo.phyAddr = reinterpret_cast<void *>(srcBuffer->getPhyAddr());
+            }
+            srcInfo.mmuFlag  = 1;
+            rga_set_rect(&srcInfo.rect, 0, 0,
+                        mSrcWidth, mSrcHeight, mSrcWidth, mSrcHeight, RK_FORMAT_YCbCr_420_SP);
+
+            //dstInfo.fd = mDrmBufferMap.buf_fd;
+            dstInfo.fd = dstBuffer->getFd();
+            if (srcInfo.fd < 0) {
+                srcInfo.virAddr = reinterpret_cast<void *>(srcBuffer->getData());
+                srcInfo.phyAddr = reinterpret_cast<void *>(srcBuffer->getPhyAddr());
+            }
+            dstInfo.mmuFlag  = 1;
+            rga_set_rect(&dstInfo.rect, 0, 0,
+                        mSrcWidth, mSrcHeight, mSrcWidth, mSrcHeight, RK_FORMAT_RGBA_8888);
+
+            //sync buffer
+            // struct dma_buf_sync sync = { 0 };
+            // if (srcBuffer->getFd() < 0) {
+            //     //break;
+            // }else{
+            //     sync.flags = DMA_BUF_SYNC_RW | DMA_BUF_SYNC_START;
+            //     int ret = ioctl(srcBuffer->getFd(), DMA_BUF_IOCTL_SYNC, &sync);
+            //     sync.flags = DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END;
+            //     ret = ioctl(srcBuffer->getFd(), DMA_BUF_IOCTL_SYNC, &sync);
+            //     if(ret < 0){
+            //         RT_LOGE("rga drm buf sync error");
+            //     }
+            // }
+            RgaBlit(&srcInfo, &dstInfo, NULL);
+            static bool flag = true;
+            if(flag){
+                flag = false;
+                FILE *file = fopen("/tmp/rgba8888.bin","w+b");
+                if(file){
+                  char *buffer = (char *)drm_map_buffer(drmFd, mDrmBufferMap.handle, mDrmBufferMap.size);
+                  fwrite(buffer, 1 , mDrmBufferMap.size, file);
+                  fclose(file);
+                  drm_unmap_buffer(buffer, mDrmBufferMap.size);
+                }
+
+            }
+            dstBuffer = srcBuffer;
+            dstBuffer->setFd(dstInfo.fd);
+            //dstBuffer->setSize(mSrcWidth * mSrcHeight *4);
+            dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, RT_FMT_ARGB8888);
+        }else{
+            RT_LOGE("eptz frame not moving");
+            dstBuffer = srcBuffer;
+            dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, RT_FMT_YUV420SP);
+        }  */
         dstBuffer = srcBuffer;
+        dstBuffer->extraMeta(streamId)->setInt64(kKeyFramePts, pts);
+        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);  
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, (INT32)mLastXY[0] % 2 != 0 ? (INT32)mLastXY[0] - 1 : (INT32)mLastXY[0]);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_Y, (INT32)mLastXY[1] % 2 != 0 ? (INT32)mLastXY[1] - 1 : (INT32)mLastXY[1]);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_W, (INT32)mLastXY[2] % 2 != 0 ? (INT32)mLastXY[2] - 1 : (INT32)mLastXY[2]);

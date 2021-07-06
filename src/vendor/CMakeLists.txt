@@ -52,6 +52,12 @@ if (${ENABLE_SAMPLE_NODE_FACEAE})
     endif()
 endif()
 
+# zoom node
+set(SRC_FILES_VENDOR
+    ${SRC_FILES_VENDOR}
+    filter/zoom/RTNodeVFilterZoom.cpp
+)
+
 add_library(${VENDOR_STATIC} STATIC ${SRC_FILES_VENDOR})
 set_target_properties(${VENDOR_STATIC} PROPERTIES FOLDER "vendor")
 target_link_libraries(${VENDOR_STATIC} ${SRC_DEPEND_LIBS})

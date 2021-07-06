@@ -185,12 +185,25 @@ int32_t AISceneDirector::observeGraphOutput(const std::string &appName, const in
     return 0;
 }
 
-int32_t AISceneDirector::setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &enabled) {
-    LOG_INFO("seteptz mode:(%d) val:(%d)\n", mode, enabled);
+int32_t AISceneDirector::setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &val) {
+    LOG_INFO("seteptz mode:(%d) val:(%d)\n", mode, val);
     if (nullptr != mUVCGraph) {
-        mUVCGraph->setEptz(mode, enabled);
+        if(mode == AI_UVC_EPTZ_AUTO){
+            mUVCGraph->setEptz(mode, val);
+            LOG_INFO("seteptz ok\n");
+            return 0;
+        }
+        RtMetaData meta;
+        meta.setInt32(kKeyTaskNodeId, 9);
+        if(mode == AI_UVC_EPTZ_PAN)
+            meta.setCString(kKeyPipeInvokeCmd, "set_pan");
+        if(mode == AI_UVC_EPTZ_TILT)
+            meta.setCString(kKeyPipeInvokeCmd, "set_tilt");
+        meta.setInt32("value", val);
+        mUVCGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &meta);
+        LOG_INFO("set pt ok\n");
+
     }
-    LOG_INFO("seteptz ok\n");
     return 0;
 }
 
@@ -198,7 +211,12 @@ int32_t AISceneDirector::setZoom(const double &val) {
     LOG_INFO("setZoom(%f)\n", val);
     float zoomVal = (float)val;
     if (nullptr != mUVCGraph) {
-        mUVCGraph->setZoom(zoomVal);
+        RtMetaData meta;
+        meta.setInt32(kKeyTaskNodeId,9);
+        meta.setCString(kKeyPipeInvokeCmd, "set_zoom");
+        meta.setFloat("value", zoomVal);
+        mUVCGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &meta);
+        //mUVCGraph->setZoom(zoomVal);
     }
     LOG_INFO("setZoom ok\n");
     return 0;
