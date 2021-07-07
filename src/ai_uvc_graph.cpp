@@ -96,7 +96,7 @@
 #define RT_EPTZ_TILT_MAX            10.0
 #define RT_EPTZ_TILT_COUNT          20.0
 
-#define RT_FORCE_USE_RGA_MIN_HEIGHT 360
+#define RT_FORCE_USE_RGA_MIN_HEIGHT 480
 #define RT_FORCE_USE_RGA_MIN_WIDTH  640
 
 #define ST_ASTERIA_SCENE_MAIN       "scene_nn"
@@ -311,8 +311,8 @@ RT_RET AIUVCGraph::openUVC() {
     }
 
     ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-    if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-        ctx->mFeature |= RT_FEATURE_UVC_RGA;
+    if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+        ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
     } else {
         ctx->mFeature |= RT_FEATURE_UVC;
     }
@@ -363,15 +363,6 @@ RT_RET AIUVCGraph::selectLinkMode() {
           case RT_FEATURE_UVC_ZOOM:
             ctx->mTaskGraph->selectLinkMode("uvc_zoom");
             break;
-          case RT_FEATURE_EPTZ_ZOOM:
-            ctx->mTaskGraph->selectLinkMode("eptz_zoom");
-            break;
-          case RT_FEATURE_UVC_RGA:
-            ctx->mTaskGraph->selectLinkMode("uvc_rga");
-            break;
-          case RT_FEATURE_UVC_RGA_ZOOM:
-            ctx->mTaskGraph->selectLinkMode("uvc_rga_zoom");
-            break;
           default:
             RT_LOGE("unsupport uvc mask 0x%x", uvcMask);
             break;
@@ -379,7 +370,7 @@ RT_RET AIUVCGraph::selectLinkMode() {
 
         const char* nnlink = "none";
         if ((ctx->mFeature & RT_FEATURE_NN_MASK) != 0) {
-            if (uvcMask == RT_FEATURE_UVC || uvcMask == RT_FEATURE_UVC_RGA) {
+            if (uvcMask == RT_FEATURE_UVC) {
                 nnlink = "nn_isp";
             } else {
                 nnlink = "nn_linkout";
@@ -459,8 +450,6 @@ __FAILED:
 
 RT_RET AIUVCGraph::setCameraParams() {
     RT_RET ret = RT_OK;
-    INT32 eptzWidth = 0;
-    INT32 eptzHeight = 0;
     AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
     RtMetaData params;
     INT32 bypassWidth = ISP_BYPASS_WIDTH;
@@ -485,56 +474,16 @@ RT_RET AIUVCGraph::setCameraParams() {
     ctx->mVirHeight = RT_ALIGN(ctx->mVirHeight, 16);
 
     // set isp params
-    if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-        if (ctx->mWidth < RT_FORCE_USE_RGA_MIN_WIDTH && ctx->mWidth > 120) {
-            eptzWidth  = ctx->mWidth * 1.5;
-            eptzHeight = ctx->mHeight * 1.5;
-        } else {
-            eptzWidth  = RT_FORCE_USE_RGA_MIN_WIDTH;
-            eptzHeight = RT_FORCE_USE_RGA_MIN_HEIGHT;
-        }
-        params.setInt32("opt_width",        eptzWidth);
-        params.setInt32("opt_height",       eptzHeight);
-        params.setInt32("opt_vir_width",    eptzWidth);
-        params.setInt32("opt_vir_height",   eptzHeight);
-        params.setInt32("node_buff_size",   RT_ALIGN(eptzWidth, 16) * RT_ALIGN(eptzHeight, 16) * 3 / 2);
-    } else {
-        params.setInt32("opt_width",        ctx->mWidth);
-        params.setInt32("opt_height",       ctx->mHeight);
-        params.setInt32("opt_vir_width",    ctx->mVirWidth);
-        params.setInt32("opt_vir_height",   ctx->mVirHeight);
-        params.setInt32("node_buff_size",   RT_ALIGN(ctx->mWidth, 16) * RT_ALIGN(ctx->mHeight, 16) * 3 / 2);
-    }
-    params.setInt32("opt_quantization", ctx->mQuant);
+    params.setInt32("opt_width",         ctx->mWidth);
+    params.setInt32("opt_height",        ctx->mHeight);
+     params.setInt32("opt_vir_width",    ctx->mVirWidth);
+    params.setInt32("opt_vir_height",    ctx->mVirHeight);
+    params.setInt32("node_buff_size",    RT_ALIGN(ctx->mWidth, 16) * RT_ALIGN(ctx->mHeight, 16) * 3 / 2);
+    params.setInt32("opt_quantization",  ctx->mQuant);
     params.setInt32(kKeyTaskNodeId,      ISP_SCALE0_NODE_ID);
     params.setCString(kKeyPipeInvokeCmd, "update-params");
     ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
     CHECK_EQ(ret, RT_OK);
-
-    if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-        params.clear();
-        params.setCString(kKeyPipeInvokeCmd, "set_config");
-        params.setInt32(kKeyTaskNodeId,      UVC_SMALL_RGA_NODE_ID);
-        params.setInt32("role",              RT_RGA_ROLE_SRC);
-        params.setInt32("x offset",          (eptzWidth - ctx->mWidth) / RT_EPTZ_PAN_COUNT * RT_EPTZ_PAN_MAX);
-        params.setInt32("y offset",          (eptzHeight - ctx->mHeight) / RT_EPTZ_TILT_COUNT * RT_EPTZ_TILT_MAX);
-        params.setInt32("width",             ctx->mWidth);
-        params.setInt32("height",            ctx->mHeight);
-        params.setInt32("horizontal stride", eptzWidth);
-        params.setInt32("vertical stride",   eptzHeight);
-        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
-        params.setInt32("role",              RT_RGA_ROLE_DST);
-        params.setInt32("x offset",          0);
-        params.setInt32("y offset",          0);
-        params.setInt32("width",             ctx->mWidth);
-        params.setInt32("height",            ctx->mHeight);
-        params.setInt32("horizontal stride", ctx->mWidth);
-        params.setInt32("vertical stride",   ctx->mHeight);
-        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
-        params.setCString(kKeyPipeInvokeCmd, "update-params");
-        params.setInt32("node_buff_size",    RT_ALIGN(ctx->mVirWidth, 16) * RT_ALIGN(ctx->mVirHeight, 16) * 3 / 2);
-        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
-    }
 
     params.clear();
     params.setInt32(kKeyTaskNodeId,      ISP_BYPASS_NODE_ID);
@@ -567,21 +516,17 @@ RT_RET AIUVCGraph::setCameraParams() {
     CHECK_EQ(ret, RT_OK);
 
     params.clear();
-    if (ctx->mWidth == 1920) {
-        eptzWidth = 2560;
-        eptzHeight = 1440;
-    } else if (ctx->mWidth <= 1280 && ctx->mWidth > 120) {
-        eptzWidth  = ctx->mWidth * 1.5;
-        eptzHeight = ctx->mHeight * 1.5;
-    } else {
-        RT_LOGE("unsupport eptz");
-        eptzWidth = 1280;
-        eptzHeight = 720;
-    }
+    params.setCString(kKeyPipeInvokeCmd, "update-params");
+    params.setInt32(kKeyTaskNodeId,      EPTZ_NODE_ID);
+    params.setInt32("opt_width",         bypassWidth);
+    params.setInt32("opt_height",        bypassHeight);
+    params.setInt32("opt_clip_width",    ctx->mWidth);
+    params.setInt32("opt_clip_height",   ctx->mHeight);
+    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
 
     params.clear();
     params.setCString(kKeyPipeInvokeCmd, "update-params");
-    params.setInt32(kKeyTaskNodeId,      EPTZ_NODE_ID);
+    params.setInt32(kKeyTaskNodeId,      ZOOM_RGA_NODE_ID);
     params.setInt32("opt_width",         bypassWidth);
     params.setInt32("opt_height",        bypassHeight);
     params.setInt32("opt_clip_width",    ctx->mWidth);
@@ -608,21 +553,6 @@ RT_RET AIUVCGraph::setCameraParams() {
     params.setInt32("vertical stride",   ST_ASTERIA_HEIGHT);
     ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
 
-    params.clear();
-    params.setInt32("node_buff_size",    ctx->mVirWidth * ctx->mVirHeight * 3 / 2);
-    params.setInt32(kKeyTaskNodeId,      ZOOM_RGA_NODE_ID);
-    params.setCString(kKeyPipeInvokeCmd, "update-params");
-    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
-    CHECK_EQ(ret, RT_OK);
-    params.setCString(kKeyPipeInvokeCmd, "set_config");
-    params.setInt32("role",              RT_RGA_ROLE_DST);
-    params.setInt32("x offset",          0);
-    params.setInt32("y offset",          0);
-    params.setInt32("width",             ctx->mWidth);
-    params.setInt32("height",            ctx->mHeight);
-    params.setInt32("horizontal stride", ctx->mWidth);
-    params.setInt32("vertical stride",   ctx->mHeight);
-    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
     CHECK_EQ(ret, RT_OK);
 
 __FAILED:
@@ -956,8 +886,7 @@ RT_RET AIUVCGraph::enableEPTZ(RT_BOOL enableEPTZ) {
         return RT_ERR_UNSUPPORT;
     }
 
-    isEPTZ = (((ctx->mFeature & RT_FEATURE_UVC_MASK) ==  RT_FEATURE_EPTZ) ||
-              ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_EPTZ_ZOOM))
+    isEPTZ = ((ctx->mFeature & RT_FEATURE_UVC_MASK) ==  RT_FEATURE_EPTZ)
                  ? RT_TRUE : RT_FALSE;
     if (isEPTZ == enableEPTZ) {
         RT_LOGE("eptz mode already is %s", enableEPTZ ? "eptz" : "non-eptz");
@@ -967,20 +896,16 @@ RT_RET AIUVCGraph::enableEPTZ(RT_BOOL enableEPTZ) {
     ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
     if (ctx->mZoom != 1.0f) {
         if (enableEPTZ) {
-            ctx->mFeature |= RT_FEATURE_EPTZ_ZOOM;
-        } else {
-            if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-                ctx->mFeature |= RT_FEATURE_UVC_RGA_ZOOM;
-            } else {
-                ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
-            }
+            ctx->mFeature |= RT_FEATURE_EPTZ;
+        }else{
+            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
         }
     } else {
         if (enableEPTZ) {
             ctx->mFeature |= RT_FEATURE_EPTZ;
         } else {
-            if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-                ctx->mFeature |= RT_FEATURE_UVC_RGA;
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+                ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
             } else {
                 ctx->mFeature |= RT_FEATURE_UVC;
             }
@@ -1033,24 +958,20 @@ RT_RET AIUVCGraph::setZoom(float val) {
     if (ctx->mZoom == 1.0f) {
         if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_EPTZ) {
             ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-            ctx->mFeature |= RT_FEATURE_EPTZ_ZOOM;
+            ctx->mFeature |= RT_FEATURE_EPTZ;
         } else if (ctx->mFeature & RT_FEATURE_UVC) {
             ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-            if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-                ctx->mFeature |= RT_FEATURE_UVC_RGA_ZOOM;
-            } else {
-                ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
-            }
+            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
         }
         selectLinkMode();
     } else if (val == 1.0f) {
-        if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_EPTZ_ZOOM) {
+        if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_EPTZ) {
             ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
             ctx->mFeature |= RT_FEATURE_EPTZ;
         } else if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_UVC_ZOOM) {
             ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-            if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-                ctx->mFeature |= RT_FEATURE_UVC_RGA;
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+                ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
             } else {
                 ctx->mFeature |= RT_FEATURE_UVC;
             }
@@ -1059,7 +980,6 @@ RT_RET AIUVCGraph::setZoom(float val) {
     }
 
     ctx->mZoom = val;
-    ret = setZoomPtz(RT_TRUE);
 __FAILED:
     return ret;
 }
@@ -1115,8 +1035,6 @@ __FAILED:
 RT_RET AIUVCGraph::setEptz(AI_UVC_EPTZ_MODE mode, int val) {
     RT_RET ret = RT_OK;
     AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
-    INT32 eptzWidth;
-    INT32 eptzHeight;
 
     switch (mode) {
       case AI_UVC_EPTZ_PAN:
@@ -1141,10 +1059,6 @@ RT_RET AIUVCGraph::setEptz(AI_UVC_EPTZ_MODE mode, int val) {
     }
 
     RtMutex::RtAutolock autoLock(ctx->mStateMutex);
-    if (!ctx->mTaskGraph->hasLinkMode("uvc_rga")) {
-        RT_LOGE("link mode(uvc_rga) unsupport");
-        return RT_ERR_UNSUPPORT;
-    }
     if (ctx->mTaskGraph == RT_NULL || (ctx->mFeature & RT_FEATURE_UVC_MASK) == 0) {
         ctx->mEptzVal[mode] = val;
         return ret;
@@ -1159,106 +1073,25 @@ RT_RET AIUVCGraph::setEptz(AI_UVC_EPTZ_MODE mode, int val) {
         ctx->mEptzVal[mode] = val;
         return ret;
     }
-    isEPTZ = ((ctx->mFeature & RT_FEATURE_EPTZ) || (ctx->mFeature & RT_FEATURE_EPTZ_ZOOM))
-                 ? RT_TRUE : RT_FALSE;
+    isEPTZ = (ctx->mFeature & RT_FEATURE_EPTZ) ? RT_TRUE : RT_FALSE;
 
     ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
 
     if (ctx->mZoom != 1.0f) {
-        if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-            ctx->mFeature |= RT_FEATURE_UVC_RGA_ZOOM;
-        } else {
-            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
-        }
+        ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
     } else {
-        if (ctx->mHeight < RT_FORCE_USE_RGA_MIN_HEIGHT) {
-            ctx->mFeature |= RT_FEATURE_UVC_RGA;
+        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
         } else {
             ctx->mFeature |= RT_FEATURE_UVC;
         }
     }
     selectLinkMode();
     ctx->mEptzVal[mode] = val;
-
-    ret = setZoomPtz(RT_FALSE);
-
 __FAILED:
     return ret;
 }
 
-RT_RET AIUVCGraph::setZoomPtz(RT_BOOL isZoom) {
-    RT_RET ret = RT_OK;
-    AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
-
-    INT32 srcRectX = 0;
-    INT32 srcRectY = 0;
-    INT32 srcRectW = ctx->mWidth;
-    INT32 srcRectH = ctx->mHeight;
-    INT32 dstRectX = 0;
-    INT32 dstRectY = 0;
-    INT32 dstRectW = ctx->mWidth;
-    INT32 dstRectH = ctx->mHeight;
-    INT32 horizontal = ctx->mWidth;
-    INT32 vertical = ctx->mHeight;
-    INT32 nodeId = ZOOM_RGA_NODE_ID;
-    RtMetaData srcConfig;
-    RtMetaData dstConfig;
-
-    if (isZoom == RT_TRUE || (ctx->mZoom != 1.0f && ctx->mHeight >= RT_FORCE_USE_RGA_MIN_HEIGHT)) {
-        srcRectX = (INT32)((ctx->mWidth - static_cast<float>(ctx->mWidth / ctx->mZoom)) / 2 - 0.001);
-        srcRectY = (INT32)((ctx->mHeight - static_cast<float>(ctx->mHeight / ctx->mZoom)) / 2 - 0.001);
-        srcRectW = (INT32)((static_cast<float>(ctx->mWidth) / ctx->mZoom) - 0.001);
-        srcRectH = (INT32)((static_cast<float>(ctx->mHeight) / ctx->mZoom) - 0.001);
-        if (ctx->mHeight >= RT_FORCE_USE_RGA_MIN_HEIGHT) {
-            srcRectX = (INT32)((srcRectX * 2.0) / RT_EPTZ_PAN_COUNT *
-                                    (ctx->mEptzVal[AI_UVC_EPTZ_PAN] + RT_EPTZ_PAN_MAX));
-            srcRectY = (INT32)((srcRectY * 2.0) / RT_EPTZ_TILT_COUNT *
-                                    (ctx->mEptzVal[AI_UVC_EPTZ_TILT] + RT_EPTZ_TILT_MAX));
-        }
-
-    } else {
-        horizontal  = ctx->mWidth * 1.5;
-        vertical = ctx->mHeight * 1.5;
-        nodeId = UVC_SMALL_RGA_NODE_ID;
-        srcRectX = (horizontal - ctx->mWidth) / RT_EPTZ_PAN_COUNT * (ctx->mEptzVal[AI_UVC_EPTZ_PAN] + RT_EPTZ_PAN_MAX);
-        srcRectY = (vertical - ctx->mHeight) / RT_EPTZ_TILT_COUNT * (ctx->mEptzVal[AI_UVC_EPTZ_TILT] + RT_EPTZ_TILT_MAX);
-    }
-    srcRectX = RT_ALIGN(srcRectX, 2);
-    srcRectY = RT_ALIGN(srcRectY, 2);
-    srcRectW = RT_ALIGN(srcRectW, 2);
-    srcRectH = RT_ALIGN(srcRectH, 2);
-
-    srcConfig.setInt32(kKeyTaskNodeId,      nodeId);
-    srcConfig.setCString(kKeyPipeInvokeCmd, "set_config");
-    srcConfig.setInt32("role",              RT_RGA_ROLE_SRC);
-    srcConfig.setInt32("x offset",          srcRectX);
-    srcConfig.setInt32("y offset",          srcRectY);
-    srcConfig.setInt32("width",             srcRectW);
-    srcConfig.setInt32("height",            srcRectH);
-    /*
-     * This resolution needs to be taken from the actual width and height
-     * of the upstream node.
-     */
-    srcConfig.setInt32("horizontal stride", horizontal);
-    srcConfig.setInt32("vertical stride",   vertical);
-    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &srcConfig);
-    CHECK_EQ(ret, RT_OK);
-
-    dstConfig.setInt32(kKeyTaskNodeId,      nodeId);
-    dstConfig.setCString(kKeyPipeInvokeCmd, "set_config");
-    dstConfig.setInt32("role",              RT_RGA_ROLE_DST);
-    dstConfig.setInt32("x offset",          dstRectX);
-    dstConfig.setInt32("y offset",          dstRectY);
-    dstConfig.setInt32("width",             dstRectW);
-    dstConfig.setInt32("height",            dstRectH);
-    dstConfig.setInt32("horizontal stride", dstRectW);
-    dstConfig.setInt32("vertical stride",   dstRectH);
-    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &dstConfig);
-    CHECK_EQ(ret, RT_OK);
-
-__FAILED:
-    return ret;
-}
 RT_RET AIUVCGraph::setFaceAE(int enable) {
     RT_RET ret = RT_OK;
     RtMetaData params;

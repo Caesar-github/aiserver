@@ -12,6 +12,9 @@
 #undef LOG_TAG
 #endif
 #define LOG_TAG "AISceneDirector"
+
+#define ZOOM_NODE_ID                3
+
 namespace rockchip {
 namespace aiserver {
 
@@ -193,16 +196,16 @@ int32_t AISceneDirector::setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &va
             LOG_INFO("seteptz ok\n");
             return 0;
         }
+        mUVCGraph->setEptz(mode, val);
         RtMetaData meta;
-        meta.setInt32(kKeyTaskNodeId, 9);
+        meta.setInt32(kKeyTaskNodeId, ZOOM_NODE_ID);
         if(mode == AI_UVC_EPTZ_PAN)
             meta.setCString(kKeyPipeInvokeCmd, "set_pan");
         if(mode == AI_UVC_EPTZ_TILT)
             meta.setCString(kKeyPipeInvokeCmd, "set_tilt");
         meta.setInt32("value", val);
         mUVCGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &meta);
-        LOG_INFO("set pt ok\n");
-
+        LOG_INFO("set ptz ok\n");
     }
     return 0;
 }
@@ -211,12 +214,12 @@ int32_t AISceneDirector::setZoom(const double &val) {
     LOG_INFO("setZoom(%f)\n", val);
     float zoomVal = (float)val;
     if (nullptr != mUVCGraph) {
+        mUVCGraph->setZoom(zoomVal);
         RtMetaData meta;
-        meta.setInt32(kKeyTaskNodeId,9);
+        meta.setInt32(kKeyTaskNodeId, ZOOM_NODE_ID);
         meta.setCString(kKeyPipeInvokeCmd, "set_zoom");
         meta.setFloat("value", zoomVal);
         mUVCGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &meta);
-        //mUVCGraph->setZoom(zoomVal);
     }
     LOG_INFO("setZoom ok\n");
     return 0;

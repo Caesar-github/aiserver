@@ -61,6 +61,12 @@ RTNodeVFilterZoom::~RTNodeVFilterZoom() {
 RT_RET RTNodeVFilterZoom::open(RTTaskNodeContext *context) {
     RtMetaData* inputMeta   = context->options();
     RT_RET err              = RT_OK;
+    RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_WIDTH, &mSrcWidth));
+    RT_ASSERT(inputMeta->findInt32(OPT_VIDEO_HEIGHT, &mSrcHeight));
+    RT_ASSERT(inputMeta->findInt32(OPT_EPTZ_CLIP_WIDTH, &mDstWidth));
+    RT_ASSERT(inputMeta->findInt32(OPT_EPTZ_CLIP_HEIGHT, &mDstHeight));
+    mEptzWidth = mSrcWidth;
+    mEptzHeight = mSrcHeight;
     return RT_OK;
 }
 
