@@ -77,14 +77,8 @@ RT_RET RTNodeVFilterZoom::process(RTTaskNodeContext *context) {
     RTMediaBuffer *srcBuffer = RT_NULL;
     RTMediaBuffer *dstBuffer = RT_NULL;
 
-    // 此处是用于预览的原始YUV数据，SDK默认数据流路径是bypass->EPTZ->RGA(输出给下级节点裁剪
-    INT32 count = context->inputQueueSize("image:nv12");
-    while (count) {
-        srcBuffer = context->dequeInputBuffer("image:nv12");
-        if (srcBuffer == RT_NULL)
-            continue;
-        count--;
-
+    if (!context->inputIsEmpty()) {
+        srcBuffer = context->dequeInputBuffer();
         INT32 streamId = context->getInputInfo()->streamId();
         RtMetaData *inputMeta = srcBuffer->extraMeta(streamId);
 
