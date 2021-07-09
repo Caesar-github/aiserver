@@ -1,3 +1,13 @@
+eptz V2.0.6：
+【主要更新】
+1.添加rkauth授权管理，未授权版本仅在开机30min内有效。
+2.修复一些已知问题。
+3.添加eptz_animation动画选择。
+4.eptz_algorithm.h头文件修改
+添加接口：
+  1）setEptzLicense(char *lic_path);
+  -- 设置eptz授权文件
+
 eptz V1.0.5：
 【主要更新】
 1.优化画面移动效果。
