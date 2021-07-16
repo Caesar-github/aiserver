@@ -474,16 +474,32 @@ RT_RET AIUVCGraph::setCameraParams() {
     ctx->mVirHeight = RT_ALIGN(ctx->mVirHeight, 16);
 
     // set isp params
-    params.setInt32("opt_width",         ctx->mWidth);
-    params.setInt32("opt_height",        ctx->mHeight);
-     params.setInt32("opt_vir_width",    ctx->mVirWidth);
-    params.setInt32("opt_vir_height",    ctx->mVirHeight);
-    params.setInt32("node_buff_size",    RT_ALIGN(ctx->mWidth, 16) * RT_ALIGN(ctx->mHeight, 16) * 3 / 2);
-    params.setInt32("opt_quantization",  ctx->mQuant);
-    params.setInt32(kKeyTaskNodeId,      ISP_SCALE0_NODE_ID);
-    params.setCString(kKeyPipeInvokeCmd, "update-params");
-    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
-    CHECK_EQ(ret, RT_OK);
+    if (ctx->mWidth > 640){
+        params.setInt32("opt_width",         ctx->mWidth);
+        params.setInt32("opt_height",        ctx->mHeight);
+        params.setInt32("opt_vir_width",    ctx->mVirWidth);
+        params.setInt32("opt_vir_height",    ctx->mVirHeight);
+        params.setInt32("node_buff_size",    RT_ALIGN(ctx->mWidth, 16) * RT_ALIGN(ctx->mHeight, 16) * 3 / 2);
+        params.setInt32("opt_quantization",  ctx->mQuant);
+        params.setInt32(kKeyTaskNodeId,      ISP_SCALE0_NODE_ID);
+        params.setCString(kKeyPipeInvokeCmd, "update-params");
+        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
+        CHECK_EQ(ret, RT_OK);
+    } else {
+#ifdef RK356X
+        params.setInt32(kKeyTaskNodeId,      ISP_SCALE0_NODE_ID);
+        params.setCString(kKeyPipeInvokeCmd, "update-params");
+        params.setInt32("opt_quantization",   ctx->mQuant);
+        params.setInt32("opt_width",          bypassWidth);
+        params.setInt32("opt_height",         bypassHeight);
+        params.setInt32("opt_vir_width",      bypassWidth);
+        params.setInt32("opt_vir_height",     bypassHeight);
+        params.setInt32("node_buff_size",     RT_ALIGN(bypassWidth, 16) * RT_ALIGN(bypassHeight, 16) * 3 / 2);
+        params.setInt32("opt_quantization",   ctx->mQuant);
+        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
+        CHECK_EQ(ret, RT_OK);
+#endif
+    }
 
     params.clear();
     params.setInt32(kKeyTaskNodeId,      ISP_BYPASS_NODE_ID);

@@ -19,6 +19,10 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG)
 endif()
 
+if (COMPILE_PLATFORM STREQUAL rk356x)
+    add_definitions(-DRK356X)
+endif()
+
 add_definitions(-DDBUS_HAS_RECURSIVE_MUTEX)
 
 add_definitions(-fPIC)
