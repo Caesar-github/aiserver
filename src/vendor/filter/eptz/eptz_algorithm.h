@@ -90,7 +90,7 @@ void reSetPosition(INT32 *custom_postion);
 /*
  * 说明：读取lic文件并校验
  */
-void setEptzLicense(char *lic_path)
+void setEptzLicense(char *lic_path);
 
 /*
  * 说明：动态切换eptz_zoom.confg文件
