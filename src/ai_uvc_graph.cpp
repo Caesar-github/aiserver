@@ -474,10 +474,10 @@ RT_RET AIUVCGraph::setCameraParams() {
     ctx->mVirHeight = RT_ALIGN(ctx->mVirHeight, 16);
 
     // set isp params
-    if (ctx->mWidth > 640){
+    if (ctx->mWidth > RT_FORCE_USE_RGA_MIN_WIDTH){
         params.setInt32("opt_width",         ctx->mWidth);
         params.setInt32("opt_height",        ctx->mHeight);
-        params.setInt32("opt_vir_width",    ctx->mVirWidth);
+        params.setInt32("opt_vir_width",     ctx->mVirWidth);
         params.setInt32("opt_vir_height",    ctx->mVirHeight);
         params.setInt32("node_buff_size",    RT_ALIGN(ctx->mWidth, 16) * RT_ALIGN(ctx->mHeight, 16) * 3 / 2);
         params.setInt32("opt_quantization",  ctx->mQuant);
@@ -545,6 +545,12 @@ RT_RET AIUVCGraph::setCameraParams() {
     params.setInt32(kKeyTaskNodeId,      ZOOM_RGA_NODE_ID);
     params.setInt32("opt_width",         bypassWidth);
     params.setInt32("opt_height",        bypassHeight);
+#ifdef RK356X
+    if (ctx->mWidth > RT_FORCE_USE_RGA_MIN_WIDTH){
+        params.setInt32("opt_width",         ctx->mWidth);
+        params.setInt32("opt_height",        ctx->mHeight);
+    }
+#endif
     params.setInt32("opt_clip_width",    ctx->mWidth);
     params.setInt32("opt_clip_height",   ctx->mHeight);
     ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
