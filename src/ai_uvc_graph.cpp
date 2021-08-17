@@ -270,7 +270,6 @@ RT_RET AIUVCGraph::setupGraphAndWaitDone() {
     ret = ctx->mTaskGraph->invoke(GRAPH_CMD_START, RT_NULL);
     CHECK_EQ(ret, RT_OK);
 
-    selectLinkMode();
     if (mUVCCallback != nullptr) {
         ctx->mTaskGraph->observeOutputStream("link output",
                                              UVC_LINK_OUTPUT_NODE_ID << 16,
@@ -1163,4 +1162,3 @@ RT_RET AIUVCGraph::invoke(INT32 cmd, void *data) {
 __FAILED:
     return ret;
 }
-
