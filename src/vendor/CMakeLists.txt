@@ -66,12 +66,17 @@ option(ENABLE_SAMPLE_NODE_VIDEO_OUTPUT "enable node video output" OFF)
 if(${ENABLE_SAMPLE_NODE_VIDEO_OUTPUT})
     set(SRC_DEPEND_LIBS ${SRC_DEPEND_LIBS} drm)
     set(INCLUDE_RKVO
-        filter/rkvo)
+        filter/rkvo/headers
+        ../utils/drm)
     include_directories(${INCLUDE_RKVO})
     set(SRC_FILES_VENDOR
         ${SRC_FILES_VENDOR}
         filter/rkvo/RTNodeVFilterVideoOutput.cpp
-        )
+        filter/rkvo/drmDsp.c
+        filter/rkvo/drmDsp/bo.c
+        filter/rkvo/drmDsp/dev.c
+        filter/rkvo/drmDsp/modeset.c)
+    set(SRC_DEPEND_LIBS ${SRC_DEPEND_LIBS} drm)
     message("Build with rkvo")
 endif()
 

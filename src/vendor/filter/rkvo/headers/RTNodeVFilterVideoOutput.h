@@ -257,6 +257,7 @@ class RTNodeVFilterVideoOutput : public RTTaskNode {
     ROCKIT_VO_CTX_S mCtx;
     INT64           frameCount;
     timeval         beginTime;
+    INT32           drmInitSuccess;
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTER_VIDEO_OUTPUT

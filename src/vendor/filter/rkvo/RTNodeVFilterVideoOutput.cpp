@@ -21,6 +21,7 @@
 #include "RTNodeVFilterVideoOutput.h"          // NOLINT
 #include "rockit/RTNodeCommon.h"
 #include <sys/time.h>
+#include "drmDsp.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -36,7 +37,7 @@ static RK_S32 VO_ENABLE()
     VO_VIDEO_LAYER_ATTR_S stLayerAttr;
     RK_S32 s32Ret;
     VO_CHN_ATTR_S stChnAttr;
-    VO_CHN        VoChn;
+    VO_CHN VoChn;
     VoChn = 0;
 
     s32Ret = RK_MPI_SYS_Init();
@@ -136,8 +137,21 @@ RT_RET RTNodeVFilterVideoOutput::open(RTTaskNodeContext *context) {
     RT_LOGD("wttt RTNodeVFilterVideoOutput open");
     RtMetaData* inputMeta   = context->options();
     RT_RET err              = RT_OK;
+    drmInitSuccess = 0;
 
+#ifdef RK356X
     VO_ENABLE();
+#endif
+
+#ifdef RV1126_RV1109
+    if (initDrmDsp() < 0)
+    {
+        RT_LOGE("DRM display init failed\n");
+    } else {
+        drmInitSuccess = 1;
+    }
+#endif
+
 
     gettimeofday(&beginTime, NULL);
     frameCount = 0;
@@ -150,6 +164,7 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
     RTMediaBuffer *srcBuffer = RT_NULL;
     RTMediaBuffer *dstBuffer = RT_NULL;
     RtMutex::RtAutolock autoLock(mLock);
+    RK_S32                ret = RT_OK;
 
     INT32 count = context->inputQueueSize("image:nv12");
     while (count) {
@@ -161,11 +176,35 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
         srcBuffer->getMetaData()->findInt32(kKeyFrameW, &mSrcWidth);
         srcBuffer->getMetaData()->findInt32(kKeyFrameH, &mSrcHeight);
 
+#ifdef RV1126_RV1109
+        if (drmInitSuccess)
+        {
+            ret = drmDspFrame(mSrcWidth, mSrcHeight, srcBuffer->getData(), DRM_FORMAT_NV12);
+            if (ret == RT_OK) {
+                if (!access(HDMI_RKVO_DEBUG_FPS, 0)) {
+                    ++frameCount;
+                    if (frameCount == 100) {
+                        struct timeval now_time;
+                        gettimeofday(&now_time, NULL);
+                        float use_times = (now_time.tv_sec * 1000 + now_time.tv_usec / 1000) -
+                            (beginTime.tv_sec * 1000 + beginTime.tv_usec / 1000);
+                        beginTime.tv_sec = now_time.tv_sec;
+                        beginTime.tv_usec = now_time.tv_usec;
+                        float fps = (1000 * frameCount) / use_times;
+                        frameCount = 0;
+                        RT_LOGE("hdmi rkvo fps = %0.1f", fps);
+                    }
+                }
+            } else {
+                RT_LOGE("drmDspFrame failed ret = %d", ret);
+            }
+        }
+#endif
+#ifdef RK356X
         VIDEO_FRAME_INFO_S    *pstVFrame;
         RK_VOID               *pMblk;
         VO_LAYER              VoVideoLayer;
         VO_CHN                VoChn;
-        RK_S32                ret = RT_OK;
 
         pstVFrame = (VIDEO_FRAME_INFO_S *)(malloc(sizeof(VIDEO_FRAME_INFO_S)));
         VoVideoLayer = RK356X_VOP_LAYER_CLUSTER_0;
@@ -201,7 +240,7 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
                 break;
             }
         } while (0);
-
+#endif
         srcBuffer->release();
     }
     return err;
@@ -210,6 +249,13 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
 RT_RET RTNodeVFilterVideoOutput::close(RTTaskNodeContext *context) {
     RT_LOGD("wttt RTNodeVFilterVideoOutput close");
     RT_RET err = RT_OK;
+#ifdef RV1126_RV1109
+    if (drmInitSuccess)
+    {
+        deInitDrmDsp();
+    }
+#endif
+
     return err;
 }
 

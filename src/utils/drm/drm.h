@@ -2,7 +2,7 @@
  * Copyright (c) 2007-2008 valinux
  * \file drm.h
  * Header for the Direct Rendering Manager
- * 
+ *
  * \author Rickard E. (Rik) Faith <faith@valinux.com>
  *
  * \par Acknowledgments:
@@ -40,6 +40,7 @@
 #if defined(__linux__)
 
 #include <linux/types.h>
+#include <stddef.h>
 #include <asm/ioctl.h>
 typedef unsigned int drm_handle_t;
 

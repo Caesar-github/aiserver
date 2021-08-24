@@ -19,6 +19,10 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG)
 endif()
 
+if(COMPILE_PLATFORM STREQUAL rv1109)
+    add_definitions(-DRV1126_RV1109)
+endif()
+
 if (COMPILE_PLATFORM STREQUAL rk356x)
     add_definitions(-DRK356X)
 endif()
