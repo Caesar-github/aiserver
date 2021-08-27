@@ -22,12 +22,12 @@
 #include "rockit/RTMediaRockx.h"
 #include "rockit/RTAIDetectResults.h"
 
-#include "rockit/mpi/rk_debug.h"
-#include "rockit/mpi/rk_mpi_sys.h"
-#include "rockit/mpi/rk_mpi_vo.h"
-#include "rockit/mpi/rk_mpi_vdec.h"
-#include "rockit/mpi/rk_mpi_mb.h"
-#include "rockit/mpi/rk_common.h"
+#include "rockit/rk_debug.h"
+#include "rockit/rk_mpi_sys.h"
+#include "rockit/rk_mpi_vo.h"
+#include "rockit/rk_mpi_vdec.h"
+#include "rockit/rk_mpi_mb.h"
+#include "rockit/rk_common.h"
 // #include "rockit/mpi/mpi_test_utils.h"
 // #include "rockit/mpi/argparse.h"
 
@@ -258,6 +258,7 @@ class RTNodeVFilterVideoOutput : public RTTaskNode {
     INT64           frameCount;
     timeval         beginTime;
     INT32           drmInitSuccess;
+    VIDEO_FRAME_INFO_S      *pstVFrame;
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTER_VIDEO_OUTPUT

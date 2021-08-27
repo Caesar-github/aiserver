@@ -21,7 +21,9 @@
 #include "RTNodeVFilterVideoOutput.h"          // NOLINT
 #include "rockit/RTNodeCommon.h"
 #include <sys/time.h>
+#ifdef RV1126_RV1109
 #include "drmDsp.h"
+#endif
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -88,10 +90,25 @@ static RK_S32 VO_ENABLE()
 
     s32Ret = RK_MPI_VO_SetLayerAttr(VoLayer, &stLayerAttr);
     if (s32Ret != RK_SUCCESS)
+    {
+        RK_LOGE("[%s] RK_MPI_VO_SetLayerAttr failed,s32Ret:%d\n", __func__, s32Ret);
         return RK_FAILURE;
+    }
+
+    s32Ret = RK_MPI_VO_BindLayer(VoLayer, VoDev, VO_LAYER_MODE_VIDEO);
+    if (s32Ret != RK_SUCCESS)
+    {
+        RK_LOGE("[%s] RK_MPI_VO_BindLayer failed,s32Ret:%d\n", __func__, s32Ret);
+        return RK_FAILURE;
+    }
+
+
     s32Ret = RK_MPI_VO_EnableLayer(VoLayer);
     if (s32Ret != RK_SUCCESS)
+    {
+        RK_LOGE("[%s] RK_MPI_VO_EnableLayer failed,s32Ret:%d\n", __func__, s32Ret);
         return RK_FAILURE;
+    }
 
     stChnAttr.stRect.s32X = 0;
     stChnAttr.stRect.s32Y = 0;
@@ -136,11 +153,12 @@ RTNodeVFilterVideoOutput::~RTNodeVFilterVideoOutput() {
 RT_RET RTNodeVFilterVideoOutput::open(RTTaskNodeContext *context) {
     RT_LOGD("wttt RTNodeVFilterVideoOutput open");
     RtMetaData* inputMeta   = context->options();
-    RT_RET err              = RT_OK;
     drmInitSuccess = 0;
 
 #ifdef RK356X
     VO_ENABLE();
+    pstVFrame = (VIDEO_FRAME_INFO_S *)(calloc(sizeof(VIDEO_FRAME_INFO_S), 1));
+
 #endif
 
 #ifdef RV1126_RV1109
@@ -201,20 +219,20 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
         }
 #endif
 #ifdef RK356X
-        VIDEO_FRAME_INFO_S    *pstVFrame;
         RK_VOID               *pMblk;
         VO_LAYER              VoVideoLayer;
         VO_CHN                VoChn;
 
-        pstVFrame = (VIDEO_FRAME_INFO_S *)(malloc(sizeof(VIDEO_FRAME_INFO_S)));
         VoVideoLayer = RK356X_VOP_LAYER_CLUSTER_0;
         VoChn = 0;
         /*fill pMbBlk*/
         pstVFrame->stVFrame.pMbBlk = srcBuffer;
         pstVFrame->stVFrame.u32Width = mSrcWidth;
         pstVFrame->stVFrame.u32Height = mSrcHeight;
-        pstVFrame->stVFrame.u32VirWidth = 1920;
-        pstVFrame->stVFrame.u32VirHeight = 1080;
+        pstVFrame->stVFrame.u32VirWidth = mSrcWidth;
+        pstVFrame->stVFrame.u32VirHeight = mSrcHeight;
+        pstVFrame->stVFrame.enPixelFormat = RK_FMT_YUV420SP;
+        pstVFrame->stVFrame.enCompressMode = COMPRESS_MODE_NONE;
         do {
             ret = RK_MPI_VO_SendFrame(VoVideoLayer, VoChn, pstVFrame, -1);
             if (ret == RT_OK) {
@@ -236,7 +254,6 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
             } else {
                 RT_LOGE("RK_MPI_VO_SendFrame failed ret = %d", ret);
                 RK_MPI_VO_DestroyGraphicsFrameBuffer(pMblk);
-                free(pstVFrame);
                 break;
             }
         } while (0);
@@ -254,6 +271,11 @@ RT_RET RTNodeVFilterVideoOutput::close(RTTaskNodeContext *context) {
     {
         deInitDrmDsp();
     }
+#endif
+
+#ifdef RK356X
+    if(pstVFrame)
+        free(pstVFrame);
 #endif
 
     return err;
