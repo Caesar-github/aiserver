@@ -52,6 +52,16 @@ if (${ENABLE_SAMPLE_NODE_ROCKX})
         message(STATUS "Build NONE rockx ")
     endif()
 endif()
+
+# vendor face line node
+option(ENABLE_SAMPLE_NODE_FACE_LINE  "enable face_line node" OFF)
+if (${ENABLE_SAMPLE_NODE_FACE_LINE})
+    set(SRC_FILES_VENDOR
+        ${SRC_FILES_VENDOR}
+        filter/face_line/RTNodeVFilterFaceLineDemo.cpp )
+    set(SRC_DEPEND_LIBS ${SRC_DEPEND_LIBS} rga)
+endif()
+
 # vendor faceae node
 option(ENABLE_SAMPLE_NODE_FACEAE  "enable faceae node" OFF)
 if (${ENABLE_SAMPLE_NODE_FACEAE})

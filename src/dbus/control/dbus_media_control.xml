@@ -93,6 +93,11 @@
       <arg name="result" type="i" direction="out"/>
     </method>
 
+    <method name="EnableFaceLine">
+      <arg name="param" type="i" direction="in"/>
+      <arg name="result" type="i" direction="out"/>
+    </method>
+
     <method name="SetZoom">
       <arg name="param" type="d" direction="in"/>
       <arg name="result" type="i" direction="out"/>

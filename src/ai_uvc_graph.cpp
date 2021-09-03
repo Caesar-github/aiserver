@@ -50,6 +50,7 @@
 #define EPTZ_NODE_ID                    5
 #define EPTZ_RGA_NODE_ID                6
 #define UVC_LINK_OUTPUT_NODE_ID         7
+#define FACE_LINE_NODE_ID               9
 #define ST_ASTERIA_RGA_NODE_ID          10
 #define ST_NN_NODE0_ID                  11
 #define ST_NN_NODE1_ID                  12
@@ -80,6 +81,7 @@
 #define RT_FEATURE_EPTZ_ZOOM        0x00000004
 #define RT_FEATURE_UVC_RGA          0x00000005
 #define RT_FEATURE_UVC_RGA_ZOOM     0x00000007
+#define RT_FEATURE_FACE_LINE        0x00000008
 
 #define RT_FEATURE_NN               0x00000010
 #define RT_FEATURE_AIMATTING        0x00000100
@@ -362,6 +364,9 @@ RT_RET AIUVCGraph::selectLinkMode() {
           case RT_FEATURE_UVC_ZOOM:
             ctx->mTaskGraph->selectLinkMode("uvc_zoom");
             break;
+          case RT_FEATURE_FACE_LINE:
+            ctx->mTaskGraph->selectLinkMode("face_line");
+            break;
           default:
             RT_LOGE("unsupport uvc mask 0x%x", uvcMask);
             break;
@@ -533,6 +538,15 @@ RT_RET AIUVCGraph::setCameraParams() {
     params.clear();
     params.setCString(kKeyPipeInvokeCmd, "update-params");
     params.setInt32(kKeyTaskNodeId,      EPTZ_NODE_ID);
+    params.setInt32("opt_width",         bypassWidth);
+    params.setInt32("opt_height",        bypassHeight);
+    params.setInt32("opt_clip_width",    ctx->mWidth);
+    params.setInt32("opt_clip_height",   ctx->mHeight);
+    ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
+
+    params.clear();
+    params.setCString(kKeyPipeInvokeCmd, "update-params");
+    params.setInt32(kKeyTaskNodeId,      FACE_LINE_NODE_ID);
     params.setInt32("opt_width",         bypassWidth);
     params.setInt32("opt_height",        bypassHeight);
     params.setInt32("opt_clip_width",    ctx->mWidth);
@@ -1134,6 +1148,43 @@ RT_RET AIUVCGraph::setFaceAE(int enable) {
     }
     selectLinkMode();
 __FAILED:
+    return ret;
+}
+
+RT_RET AIUVCGraph::setFaceLine(int enable) {
+    RT_RET ret = RT_OK;
+    RtMetaData params;
+
+    AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
+    RtMutex::RtAutolock autoLock(ctx->mStateMutex);
+
+    INT32 isFaceLine = RT_FALSE;
+    if (!ctx->mTaskGraph->hasLinkMode("face_line")) {
+        RT_LOGE("link mode(face_line) unsupport");
+        return RT_ERR_UNSUPPORT;
+    }
+
+    isFaceLine = ((ctx->mFeature & RT_FEATURE_UVC_MASK) ==  RT_FEATURE_FACE_LINE)
+                 ? RT_TRUE : RT_FALSE;
+    if (isFaceLine == enable) {
+        RT_LOGE("face line mode already is %s", enable ? "opened" : "closed");
+        return ret;
+    }
+    RT_LOGD("zoom %f enable face_line %d isFaceLine %d", ctx->mZoom, enable, isFaceLine);
+    ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
+
+    if (enable) {
+        ctx->mFeature |= RT_FEATURE_FACE_LINE;
+    } else {
+        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
+        } else {
+            ctx->mFeature |= RT_FEATURE_UVC;
+        }
+    }
+
+    selectLinkMode();
+
     return ret;
 }
 

@@ -87,6 +87,7 @@ class AIUVCGraph {
     RT_RET closeAIMatting();
 
     RT_RET setFaceAE(int enable);
+    RT_RET setFaceLine(int enable);
 
     RT_RET waitUntilDone();
 

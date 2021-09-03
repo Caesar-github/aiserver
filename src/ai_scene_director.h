@@ -45,6 +45,7 @@ class AISceneDirector : public RTGraphListener {
     virtual int32_t setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &enabled);
     virtual int32_t setZoom(const double &val);
     virtual int32_t setFaceAE(const int32_t &enabled);
+    virtual int32_t setFaceLine(const int32_t &enabled);
 
     virtual int32_t enableAIAlgorithm(const std::string &type);
     virtual int32_t disableAIAlgorithm(const std::string &type);

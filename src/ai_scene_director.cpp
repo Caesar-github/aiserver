@@ -232,6 +232,14 @@ int32_t AISceneDirector::setFaceAE(const int32_t &enabled) {
     LOG_INFO("setFaceAE ok\n");
     return 0;
 }
+int32_t AISceneDirector::setFaceLine(const int32_t &enabled) {
+    LOG_INFO("setFaceLine enabled:(%d)\n", enabled);
+    if (nullptr != mUVCGraph) {
+        mUVCGraph->setFaceLine(enabled);
+    }
+    LOG_INFO("setFaceLine ok\n");
+    return 0;
+}
 
 int32_t AISceneDirector::enableAIAlgorithm(const std::string &type) {
     LOG_INFO("enableAIAlgorithm(%s)\n", type.c_str());
