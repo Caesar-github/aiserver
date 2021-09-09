@@ -20,6 +20,8 @@
 
 #include "RTNodeVFilterEptzDemo.h"          // NOLINT
 #include "RTNodeCommon.h"
+#include "RTVideoFrame.h"
+#include "RTTaskNodePrivKey.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -165,24 +167,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
         if (srcBuffer == RT_NULL)
             continue;
         count--;
-        INT32 streamId = context->getInputInfo()->streamId();
-        RtMetaData *inputMeta = srcBuffer->extraMeta(streamId);
-        int64_t pts = 0;
-        int32_t seq = 0;
-        inputMeta->findInt64(kKeyFramePts, &pts);
-        inputMeta->findInt32(kKeyFrameSequence, &seq);
-
         mSequeFrame++;
-        streamId = context->getOutputInfo()->streamId();
-
-        if (!access(UVC_DYNAMIC_DEBUG_USE_TIME_CHECK, 0)) {
-            int32_t use_time_us, now_time_us;
-            struct timespec now_tm = {0, 0};
-            clock_gettime(CLOCK_MONOTONIC, &now_tm);
-            now_time_us = now_tm.tv_sec * 1000000LL + now_tm.tv_nsec / 1000; // us
-            use_time_us = now_time_us - pts;
-            RT_LOGE("isp->aiserver seq:%ld latency time:%d us, %d ms\n",seq, use_time_us, use_time_us / 1000);
-        }
 /*
         if(isMoving()){
             RT_LOGE("eptz frame moving");
@@ -244,23 +229,42 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
             dstBuffer = srcBuffer;
             dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, RT_FMT_YUV420SP);
         }  */
-        dstBuffer = srcBuffer;
-        dstBuffer->extraMeta(streamId)->setInt64(kKeyFramePts, pts);
-        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, (INT32)mLastXY[0] % 2 != 0 ? (INT32)mLastXY[0] - 1 : (INT32)mLastXY[0]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_Y, (INT32)mLastXY[1] % 2 != 0 ? (INT32)mLastXY[1] - 1 : (INT32)mLastXY[1]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_W, (INT32)mLastXY[2] % 2 != 0 ? (INT32)mLastXY[2] - 1 : (INT32)mLastXY[2]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_H, (INT32)mLastXY[3] % 2 != 0 ? (INT32)mLastXY[3] - 1 : (INT32)mLastXY[3]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_VIR_WIDTH, mSrcWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_VIR_HEIGHT, mSrcHeight);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_X, 0);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_Y, 0);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_W, mClipWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_H, mClipHeight);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_VIR_WIDTH, mClipWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_VIR_HEIGHT, mClipHeight);
-        context->queueOutputBuffer(dstBuffer);
+        RTRect srcRect;
+        RTCropInfo dstCropInfo;
+        RTVideoFrame *srcVFrame = RT_NULL;
+        srcVFrame = reinterpret_vframe(srcBuffer);
+        RTVideoFrame *cloneDstBuffer = clone_vframe(srcVFrame);
+
+        srcRect.x = (INT32)mLastXY[0] % 2 != 0 ? (INT32)mLastXY[0] - 1 : (INT32)mLastXY[0];
+        srcRect.y = (INT32)mLastXY[1] % 2 != 0 ? (INT32)mLastXY[1] - 1 : (INT32)mLastXY[1];
+        srcRect.w = (INT32)mLastXY[2] % 2 != 0 ? (INT32)mLastXY[2] - 1 : (INT32)mLastXY[2];
+        srcRect.h = (INT32)mLastXY[3] % 2 != 0 ? (INT32)mLastXY[3] - 1 : (INT32)mLastXY[3];
+        cloneDstBuffer->setOpRect(srcRect);
+        cloneDstBuffer->setVirWidth(mSrcWidth);
+        cloneDstBuffer->setVirHeight(mSrcHeight);
+        dstCropInfo.region.x = 0;
+        dstCropInfo.region.y = 0;
+        dstCropInfo.region.w = mClipWidth;
+        dstCropInfo.region.h = mClipHeight;
+        dstCropInfo.virWidth = mClipWidth;
+        dstCropInfo.virHeight = mClipHeight;
+        cloneDstBuffer->getMetaData()->setStructData(KEY_COMM_DST_CROP, &dstCropInfo, sizeof(RTCropInfo));
+        cloneDstBuffer->setSeq(srcVFrame->getSeq());
+        cloneDstBuffer->setPts(srcVFrame->getPts());
+        context->queueOutputBuffer(cloneDstBuffer);
+        srcBuffer->release();
+        srcBuffer = RT_NULL;
+        if (!access(UVC_DYNAMIC_DEBUG_USE_TIME_CHECK, 0)) {
+            int32_t use_time_us, now_time_us;
+            struct timespec now_tm = {0, 0};
+            clock_gettime(CLOCK_MONOTONIC, &now_tm);
+            now_time_us = now_tm.tv_sec * 1000000LL + now_tm.tv_nsec / 1000; // us
+            use_time_us = now_time_us - cloneDstBuffer->getPts();
+            RT_LOGE("isp->aiserver seq:%ld latency time:%d us, %d ms\n",
+                     cloneDstBuffer->getSeq(), use_time_us, use_time_us / 1000);
+        }
     }
+
     return err;
 }
 
@@ -314,8 +318,8 @@ RTNodeStub node_stub_filter_eptz_demo {
     .mName         = "rkeptz",
     .mVersion      = "v1.0",
     .mCreateObj    = createEptzFilter,
-    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },
-    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, {RT_NULL, RT_NULL} },
+    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
+    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_eptz_demo);

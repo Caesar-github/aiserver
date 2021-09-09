@@ -20,6 +20,7 @@
 
 #include "RTNodeVFilterVideoOutput.h"          // NOLINT
 #include "RTNodeCommon.h"
+#include "RTVideoFrame.h"
 #include <sys/time.h>
 #ifdef RV1126_RV1109
 #include "drmDsp.h"
@@ -181,20 +182,17 @@ RT_RET RTNodeVFilterVideoOutput::open(RTTaskNodeContext *context) {
 
 RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
     RT_RET         err       = RT_OK;
-    RTMediaBuffer *srcBuffer = RT_NULL;
-    RTMediaBuffer *dstBuffer = RT_NULL;
+    RTVideoFrame *srcBuffer = RT_NULL;
     RtMutex::RtAutolock autoLock(mLock);
     RK_S32                ret = RT_OK;
 
     INT32 count = context->inputQueueSize("image:nv12");
     while (count) {
-        srcBuffer = context->dequeInputBuffer("image:nv12");
+        srcBuffer = reinterpret_vframe(context->dequeInputBuffer("image:nv12"));
         if (srcBuffer == RT_NULL)
             continue;
 
         count--;
-        srcBuffer->getMetaData()->findInt32(kKeyFrameW, &mSrcWidth);
-        srcBuffer->getMetaData()->findInt32(kKeyFrameH, &mSrcHeight);
 
 #ifdef RV1126_RV1109
         if (drmInitSuccess)
@@ -229,10 +227,10 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
         VoChn = 0;
         /*fill pMbBlk*/
         pstVFrame->stVFrame.pMbBlk = srcBuffer;
-        pstVFrame->stVFrame.u32Width = mSrcWidth;
-        pstVFrame->stVFrame.u32Height = mSrcHeight;
-        pstVFrame->stVFrame.u32VirWidth = mSrcWidth;
-        pstVFrame->stVFrame.u32VirHeight = mSrcHeight;
+        pstVFrame->stVFrame.u32Width = srcBuffer->getWidth();
+        pstVFrame->stVFrame.u32Height = srcBuffer->getHeight();
+        pstVFrame->stVFrame.u32VirWidth = srcBuffer->getWidth();
+        pstVFrame->stVFrame.u32VirHeight = srcBuffer->getHeight();
         pstVFrame->stVFrame.enPixelFormat = RK_FMT_YUV420SP;
         pstVFrame->stVFrame.enCompressMode = COMPRESS_MODE_NONE;
         do {
@@ -307,8 +305,8 @@ RTNodeStub node_stub_filter_video_output {
     .mName         = "rkvo",
     .mVersion      = "v1.0",
     .mCreateObj    = createVideoOutputFilter,
-    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },
-    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, {RT_NULL, RT_NULL} },
+    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
+    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_video_output);

@@ -50,9 +50,7 @@ RT_RET RTRockitDemoNode::process(RTTaskNodeContext *context) {
         // 设置输出buffer的范围
         outputBuffer->setRange(0, inputBuffer->getLength());
         // 标记EOS
-        if (inputBuffer->isEOS()) {
-            outputBuffer->getMetaData()->setInt32(kKeyFrameEOS, 1);
-        }
+        outputBuffer->getMetaData()->setInt32(kKeyFrameEOS, 1);
         // 输入Buffer使用完成，调用释放
         inputBuffer->release();
         // 将输出buffer带出，完成处理流程
@@ -73,8 +71,8 @@ RTNodeStub node_stub_rockit_demo {
     .mVersion      = "v1.0",
     // 节点创建方法; 改成宏定义
     .mCreateObj    = createRockitDemoNode,
-    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },
-    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, {RT_NULL, RT_NULL} },
+    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
+    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_rockit_demo);

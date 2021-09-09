@@ -8,6 +8,7 @@
 #include "shm_control_uvc.h"
 #include "logger/log.h"
 #include "drm_helper.h"
+#include "RTVideoFrame.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -313,8 +314,14 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     int64_t pts = 0;
     int32_t seq = 0;
     std::string sendbuf;
+    RTVideoFrame *pVFrame = reinterpret_vframe(buffer);
     UVCMessage message;
     if (buffer == nullptr) {
+        return;
+    }
+    if (pVFrame == nullptr) {
+        LOG_ERROR("buffer type is not video frame. release it.");
+        buffer->release();
         return;
     }
 
@@ -322,16 +329,14 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     message.set_allocated_buffer_info(bufferInfo);
     //MediaBufferInfo bufferInfo = message.buffer_info();
 
-    buffer->getMetaData()->findInt64(kKeyFramePts, &pts);
-    buffer->getMetaData()->findInt32(kKeyFrameSequence, &seq);
-    bufferInfo->set_id(buffer->getUniqueID());
-    bufferInfo->set_size(buffer->getSize());
-    bufferInfo->set_fd(buffer->getFd());
-    bufferInfo->set_handle(buffer->getHandle());
-    bufferInfo->set_pts(pts);
-    bufferInfo->set_data((int64_t)buffer->getData());
-    bufferInfo->set_priv_data((int64_t)buffer);
-    bufferInfo->set_seq(seq);
+    bufferInfo->set_id(pVFrame->getUniqueID());
+    bufferInfo->set_size(pVFrame->getSize());
+    bufferInfo->set_fd(pVFrame->getFd());
+    bufferInfo->set_handle(pVFrame->getHandle());
+    bufferInfo->set_pts(pVFrame->getPts());
+    bufferInfo->set_data((int64_t)pVFrame->getData());
+    bufferInfo->set_priv_data((int64_t)pVFrame);
+    bufferInfo->set_seq(pVFrame->getSeq());
     message.set_msg_type(MSG_UVC_TRANSPORT_BUF);
     message.set_msg_name("uvcbuffer");
     message.SerializeToString(&sendbuf);
@@ -346,15 +351,15 @@ void ShmUVCController::sendUVCBuffer(RTMediaBuffer* buffer) {
     shmWriteQueue.Push(sendbuf);
 
 #if UVC_DYNAMIC_DEBUG
-    send_seq = seq;
+    send_seq = pVFrame->getSeq();
     send_count ++;
     if (!access(UVC_DYNAMIC_DEBUG_USE_TIME_CHECK, 0)) {
         int32_t use_time_us, now_time_us;
         struct timespec now_tm = {0, 0};
         clock_gettime(CLOCK_MONOTONIC, &now_tm);
         now_time_us = now_tm.tv_sec * 1000000LL + now_tm.tv_nsec / 1000; // us
-        use_time_us = now_time_us - pts;
-        LOG_ERROR("isp->aiserver seq:%d latency time:%d us, %d ms\n",seq, use_time_us, use_time_us / 1000);
+        use_time_us = now_time_us - pVFrame->getPts();
+        LOG_ERROR("isp->aiserver seq:%d latency time:%d us, %d ms\n", send_seq, use_time_us, use_time_us / 1000);
     }
 
     if (!access(UVC_DYNAMIC_DEBUG_IPC_BUFFER_CHECK, 0)) {

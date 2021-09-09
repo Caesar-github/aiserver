@@ -198,8 +198,8 @@ RTNodeStub node_stub_filter_rockx {
     .mName         = "rockx",
     .mVersion      = "v1.0",
     .mCreateObj    = createRockxFilter,
-    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },
-    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, {RT_NULL, RT_NULL} },
+    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL}, },
+    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_rockx);

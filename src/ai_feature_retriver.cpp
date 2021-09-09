@@ -8,6 +8,7 @@
 #include "shm_control_feature.h"
 #include "RTMediaBuffer.h"
 #include "RTMediaMetaKeys.h"
+#include "RTVideoFrame.h"
 
 namespace rockchip {
 namespace aiserver {
@@ -114,27 +115,27 @@ INT32 AIFeatureRetriver::runTaskOnce(void *params) {
     if (imgQueue.data_size() > 0) {
         for (INT32 idx = 0; idx < imgQueue.data_size(); idx++) {
             INT32 imgSize = imgQueue.data(idx).length();
-            RTMediaBuffer *buffer = new RTMediaBuffer(imgSize);
+            RTVideoFrame *buffer = new RTVideoFrame(imgSize);
             UINT8 *imgData = (UINT8 *)buffer->getData();
             memcpy(imgData, imgQueue.data(idx).c_str(), imgSize);
 
-            buffer->getMetaData()->setInt32("opt_width",  imgQueue.width());
-            buffer->getMetaData()->setInt32("opt_height", imgQueue.height());
-            buffer->getMetaData()->setCString("stream_fmt_in", "image:nv21");
+            buffer->setWidth(imgQueue.width());
+            buffer->setHeight(imgQueue.height());
+            buffer->setPixelFormat(RT_FMT_YUV420SP_VU);
             buffer->getMetaData()->setCString("stream_uuid", uuid);
             buffer->getMetaData()->setInt32("detect_type", mAITaskManager->convertDetectType(atoi(type)));
             LOG_INFO("ready to recognize image(buf=%p,data=%p,size=%d)\n", buffer, imgData, imgSize);
             mAIGraph->recognize(buffer);
         }
     } else {
-        RTMediaBuffer *buffer = new RTMediaBuffer(RT_NULL, 0);
+        RTVideoFrame *buffer = new RTVideoFrame();
         buffer->getMetaData()->setCString("stream_uuid", uuid);
         mAITaskManager->processAIFeature(buffer);
         LOG_INFO("reply empty nn data with empty input data, uuid %s\n", uuid);
     }
 #else
     UINT32 imgSize = 1280 * 720 * 3 / 2;
-    RTMediaBuffer *buffer = new RTMediaBuffer(imgSize);
+    RTVideoFrame *buffer = new RTVideoFrame(imgSize);
     buffer->getMetaData()->setCString("stream_uuid", uuid);
     UINT8 *imgData = (UINT8 *)buffer->getData();
     FILE* imgFile = fopen("/oem/usr/bin/test_image.nv21", "rb");
@@ -146,9 +147,9 @@ INT32 AIFeatureRetriver::runTaskOnce(void *params) {
         LOG_INFO("succeed to read local image\n");
     }
 
-    buffer->getMetaData()->setInt32("opt_width",  1280);
-    buffer->getMetaData()->setInt32("opt_height", 720);
-    buffer->getMetaData()->setCString("stream_fmt_in", "image:nv21");
+    buffer->setWidth(1280);
+    buffer->setHeight(720);
+    buffer->setPixelFormat(RT_FMT_YUV420SP_VU);
     LOG_INFO("ready to recognize image(buf=%p,data=%p,size=%d)\n", buffer, imgData, imgSize);
     mAIGraph->recognize(buffer);
 

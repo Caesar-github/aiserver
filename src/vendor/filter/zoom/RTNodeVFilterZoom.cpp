@@ -22,6 +22,8 @@
 #include "RTNodeCommon.h"
 #include "RTMediaBuffer.h"
 #include "RTMediaMetaKeys.h"
+#include "RTVideoFrame.h"
+#include "RTTaskNodePrivKey.h"
 
 #include <sys/mman.h>
 
@@ -74,60 +76,65 @@ RT_RET RTNodeVFilterZoom::open(RTTaskNodeContext *context) {
 
 RT_RET RTNodeVFilterZoom::process(RTTaskNodeContext *context) {
     RT_RET         err       = RT_OK;
-    RTMediaBuffer *srcBuffer = RT_NULL;
-    RTMediaBuffer *dstBuffer = RT_NULL;
+    RTVideoFrame  *srcVFrame = RT_NULL;
+    RTVideoFrame  *dstVFrame = RT_NULL;
+    RTCropInfo    *cropInfo = RT_NULL;
 
     if (!context->inputIsEmpty()) {
-        srcBuffer = context->dequeInputBuffer();
-        INT32 streamId = context->getInputInfo()->streamId();
-        RtMetaData *inputMeta = srcBuffer->extraMeta(streamId);
+        srcVFrame = reinterpret_vframe(context->dequeInputBuffer());
+        RT_ASSERT(srcVFrame != RT_NULL);
 
-        inputMeta->findInt32(OPT_FILTER_RECT_X, &mEptzOffsetX);
-        inputMeta->findInt32(OPT_FILTER_RECT_Y, &mEptzOffsetY);
-        inputMeta->findInt32(OPT_FILTER_RECT_W, &mEptzWidth);
-        inputMeta->findInt32(OPT_FILTER_RECT_H, &mEptzHeight);
-        inputMeta->findInt32(OPT_FILTER_VIR_WIDTH, &mSrcWidth);
-        inputMeta->findInt32(OPT_FILTER_VIR_HEIGHT, &mSrcHeight);
+        if (srcVFrame->getOpRect().x != 0) {
+            mEptzOffsetX = srcVFrame->getOpRect().x;
+        }
+        if (srcVFrame->getOpRect().y != 0) {
+            mEptzOffsetY = srcVFrame->getOpRect().y;
+        }
+        if (srcVFrame->getOpRect().w != 0) {
+            mEptzWidth = srcVFrame->getOpRect().w;
+        }
+        if (srcVFrame->getOpRect().h != 0) {
+            mEptzHeight = srcVFrame->getOpRect().h;
+        }
+        mSrcWidth = srcVFrame->getVirWidth();
+        mSrcHeight = srcVFrame->getVirHeight();
 
-        inputMeta->findInt32(OPT_FILTER_DST_RECT_W, &mDstWidth);
-        inputMeta->findInt32(OPT_FILTER_DST_RECT_H, &mDstHeight);
-
-        int64_t pts = 0;
-        int32_t seq = 0;
-        int format = 0;
-        inputMeta->findInt64(kKeyFramePts, &pts);
-        inputMeta->findInt32(kKeyFrameSequence, &seq);
-        inputMeta->findInt32(OPT_VIDEO_PIX_FORMAT, &format);
         //RT_LOGE("zoom get format[%d]",  format);
 
         RTZoomCalculate();
 
-        streamId = context->getOutputInfo()->streamId();
-        dstBuffer = srcBuffer;
-        dstBuffer->extraMeta(streamId)->setInt64(kKeyFramePts, pts);
-        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, format);
+        RTRect srcRect;
+        RTCropInfo dstCropInfo;
 
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, mResult[0]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_Y, mResult[1]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_W, mResult[2]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_H, mResult[3]);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_VIR_WIDTH, mSrcWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_VIR_HEIGHT, mSrcHeight);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_X, 0);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_Y, 0);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_W, mDstWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_RECT_H, mDstHeight);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_VIR_WIDTH, mDstWidth);
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_DST_VIR_HEIGHT, mDstHeight);
-        context->queueOutputBuffer(dstBuffer);
+        srcRect.x = mResult[0];
+        srcRect.y = mResult[1];
+        srcRect.w = mResult[2];
+        srcRect.h = mResult[3];
+        dstCropInfo.region.x = 0;
+        dstCropInfo.region.y = 0;
+        dstCropInfo.region.w = mDstWidth;
+        dstCropInfo.region.h = mDstHeight;
+        dstCropInfo.virWidth = mDstWidth;
+        dstCropInfo.virHeight = mDstHeight;
+
+        dstVFrame = clone_vframe(srcVFrame);
+        dstVFrame->setOpRect(srcRect);
+        dstVFrame->setVirWidth(mSrcWidth);
+        dstVFrame->setVirHeight(mSrcHeight);
+        dstVFrame->getMetaData()->setStructData(KEY_COMM_DST_CROP, &dstCropInfo, sizeof(RTCropInfo));
+        dstVFrame->setSeq(srcVFrame->getSeq());
+        dstVFrame->setPts(srcVFrame->getPts());
+        dstVFrame->setPixelFormat(srcVFrame->getPixelFormat());
+        context->queueOutputBuffer(dstVFrame);
+        srcVFrame->release();
+        srcVFrame = RT_NULL;
     }
 
     return err;
 }
 
 void RTNodeVFilterZoom::RTZoomCalculate(){
-    RT_LOGD("RTZoomCalculate enter , mZoomValue %.2f mZoomValueNow %.2f mPanValue %d mPanValueNow %d mTiltValue %d mTiltValueNow %d",
+    RT_LOGV("RTZoomCalculate enter , mZoomValue %.2f mZoomValueNow %.2f mPanValue %d mPanValueNow %d mTiltValue %d mTiltValueNow %d",
     mZoomValue, mZoomValueNow, mPanValue, mPanValueNow, mTiltValue, mTiltValueNow);
     if (mZoomValue > 10 || mZoomValueNow > 10) {
         mIsZoomSet = true;
@@ -139,12 +146,12 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
             else
                 mZoomValueNow -= 1;
         } else if (mZoomValueNow < mZoomValue) {
-        	if (mZoomValueNow + 10 < mZoomValue)
-            	mZoomValueNow += 8;
+            if (mZoomValueNow + 10 < mZoomValue)
+                mZoomValueNow += 8;
             else if (mZoomValueNow + 5 < mZoomValue)
-            	mZoomValueNow += 4;
+                mZoomValueNow += 4;
             else
-            	mZoomValueNow += 1;
+                mZoomValueNow += 1;
         }
     }else {
         mIsZoomSet = false;
@@ -154,8 +161,8 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
     float ratio = (float)(mEptzWidth) / (float)(mSrcWidth);
     float zoomPerCrease = mSrcWidth * 1.0 / 16.0 / 80.0 * ratio;
 
-    RT_LOGD("zoomIndex %d , ratio %.2f zoomPerCrease %.2f", zoomIndex, ratio, zoomPerCrease);
-    RT_LOGD("mEPTZ Orignal xywh[%d %d %d %d] srcwh[%d %d] dstwh[%d %d]",
+    RT_LOGV("zoomIndex %d , ratio %.2f zoomPerCrease %.2f", zoomIndex, ratio, zoomPerCrease);
+    RT_LOGV("mEPTZ Orignal xywh[%d %d %d %d] srcwh[%d %d] dstwh[%d %d]",
     mEptzOffsetX, mEptzOffsetY, mEptzWidth, mEptzHeight,
     mSrcWidth, mSrcHeight, mDstWidth, mDstHeight);
 
@@ -165,7 +172,7 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
     // mEptzOffsetXF = (float)(mEptzOffsetX) + (zoomIndex * zoomPerCrease * 16) / 2;
     // mEptzOffsetYF = (float)(mEptzOffsetY) + (zoomIndex * zoomPerCrease * 9) / 2;
 
-	RT_LOGD("mEPTZ After ZOOM xywh[%.3f %.3f %.3f %.3f]", mEptzOffsetXF, mEptzOffsetYF, mEptzWidthF, mEptzHeightF);
+    RT_LOGV("mEPTZ After ZOOM xywh[%.3f %.3f %.3f %.3f]", mEptzOffsetXF, mEptzOffsetYF, mEptzWidthF, mEptzHeightF);
 
     if (mIsZoomSet == false) {
         if (mPanValueNow > mPanValue) {
@@ -214,13 +221,13 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
         float modify_x = mEptzWidthF -  (float)(mEptzHeightF) * 4 / 3;
         mEptzWidthF = mEptzWidthF - modify_x;
         mEptzOffsetXF = mEptzOffsetXF + modify_x / 2;
-        RT_LOGD("640x480 2 16:9 modify_x %.3f mEptzWidth %.3f mEptzOffsetX %.3f", modify_x, mEptzWidthF, mEptzOffsetXF);
+        RT_LOGV("640x480 2 16:9 modify_x %.3f mEptzWidth %.3f mEptzOffsetX %.3f", modify_x, mEptzWidthF, mEptzOffsetXF);
     }
     mResult[0] = ALIGN2((int)mEptzOffsetXF);
     mResult[1] = ALIGN2((int)mEptzOffsetYF);
     mResult[2] = ALIGN2((int)mEptzWidthF);
     mResult[3] = ALIGN2((int)mEptzHeightF);
-    RT_LOGD("mEPTZ ZOOM pt[%.3f %.3f] 2Align xywh[%d %d %d %d]", pan_value, tilt_value, mResult[0], mResult[1], mResult[2], mResult[3]);
+    RT_LOGV("mEPTZ ZOOM pt[%.3f %.3f] 2Align xywh[%d %d %d %d]", pan_value, tilt_value, mResult[0], mResult[1], mResult[2], mResult[3]);
 }
 
 RT_RET RTNodeVFilterZoom::invokeInternal(RtMetaData *meta) {
@@ -273,8 +280,8 @@ RTNodeStub node_stub_filter_zoom_demo {
     .mName         = "rkzoom",
     .mVersion      = "v1.0",
     .mCreateObj    = createZoomFilter,
-    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC,  {RT_NULL, RT_NULL} },
-    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, {RT_NULL, RT_NULL} },
+    .mCapsSrc      = { "video/x-raw", RT_PAD_SRC, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL}, },
+    .mCapsSink     = { "video/x-raw", RT_PAD_SINK, RT_MB_TYPE_VFRAME, {RT_NULL, RT_NULL} },
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_zoom_demo);
