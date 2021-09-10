@@ -8,7 +8,7 @@
 #include "st_task_handler.h"
 #include "logger/log.h"
 #include "parse/ai_results_parse.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTAIDetectResults.h"
 
 #define MAX_KEEP_FACE_COUNT     24
 #define FACE_FIRST_SEND_DELAY   8

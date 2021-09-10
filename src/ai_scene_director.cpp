@@ -6,7 +6,7 @@
 #include "logger/log.h"
 
 #include "ai_uvc_graph.h"
-#include "rockit/RTMediaBuffer.h"
+#include "RTMediaBuffer.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -37,7 +37,7 @@ RT_RET AISceneDirector::ai_matting_output_callback(RTMediaBuffer *buffer) {
 
 // send MediaBuffer to UVC_APP
 RT_RET AISceneDirector::uvc_data_output_callback(RTMediaBuffer *buffer) {
-    LOG_DEBUG("callback uvc buffer[%p](id=%d,fd=%d,size=%d,len=%d)\n", 
+    LOG_DEBUG("callback uvc buffer[%p](id=%d,fd=%d,size=%d,len=%d)\n",
          buffer, buffer->getUniqueID(), buffer->getFd(), buffer->getSize(), buffer->getLength());
     mUVCController->sendUVCBuffer(buffer);
     return RT_OK;

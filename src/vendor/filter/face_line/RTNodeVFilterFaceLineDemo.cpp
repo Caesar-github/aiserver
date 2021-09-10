@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 #include "RTNodeVFilterFaceLineDemo.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "RTNodeCommon.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -314,4 +314,3 @@ RTNodeStub node_stub_filter_face_line_demo
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_face_line_demo);
-

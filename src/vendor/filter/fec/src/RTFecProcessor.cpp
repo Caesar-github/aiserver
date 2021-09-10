@@ -29,7 +29,7 @@
 #include <functional>
 #include <unistd.h>
 
-#include "rockit/rt_log.h"
+#include "rt_log.h"
 
 // commands used by integration(player) layer.
 

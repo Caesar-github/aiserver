@@ -23,7 +23,7 @@
 
 #include "rockx/rockx_type.h"     // NOLINT
 
-#include "rockit/rt_header.h"
+#include "rt_header.h"
 
 class RTMediaBuffer;
 class RtMetaData;
@@ -59,4 +59,3 @@ class RTVFilterRockx {
 };
 
 #endif  // SRC_RT_MEDIA_AV_FILER_ROCKX_RTVFILTERROCKX_H_
-

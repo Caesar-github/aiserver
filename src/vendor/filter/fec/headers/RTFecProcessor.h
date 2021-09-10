@@ -23,9 +23,9 @@
 #include <thread>
 
 #include "RKISP2FecUnit.h"
-#include "rockit/RTMediaBuffer.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTTaskNode.h"
+#include "RTMediaBuffer.h"
+#include "RTMediaRockx.h"
+#include "RTTaskNode.h"
 
 typedef struct _RTFECInfo {
   RTTaskNodeContext *context;

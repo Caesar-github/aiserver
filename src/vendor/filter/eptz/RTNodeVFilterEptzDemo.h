@@ -18,9 +18,9 @@
 #ifndef SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTEREPTZDEMO_H_
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTEREPTZDEMO_H_
 
-#include "rockit/RTTaskNode.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTTaskNode.h"
+#include "RTMediaRockx.h"
+#include "RTAIDetectResults.h"
 #include "eptz_algorithm.h"
 
 class RTNodeVFilterEptz : public RTTaskNode {
@@ -52,4 +52,3 @@ class RTNodeVFilterEptz : public RTTaskNode {
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTEREPTZDEMO_H_
-

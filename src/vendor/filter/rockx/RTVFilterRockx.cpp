@@ -23,8 +23,8 @@
 #include <unistd.h>
 
 // rockit headers
-#include "rockit/rt_log.h"                   // NOLINT
-#include "rockit/rt_string_utils.h"          // NOLINT
+#include "rt_log.h"                   // NOLINT
+#include "rt_string_utils.h"          // NOLINT
 
 // rockx npu header
 #include <rockx/rockx.h>                    // NOLINT
@@ -32,10 +32,10 @@
 #include <rockx/rockface.h>
 #endif
 
-#include "rockit/RTMediaRockx.h"             // NOLINT
-#include "rockit/RTNodeCommon.h"             // NOLINT
-#include "rockit/RTAIDetectResults.h"        // NOLINT
-#include "rockit/RTNodeCommon.h"             // NOLINT
+#include "RTMediaRockx.h"             // NOLINT
+#include "RTNodeCommon.h"             // NOLINT
+#include "RTAIDetectResults.h"        // NOLINT
+#include "RTNodeCommon.h"             // NOLINT
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -790,4 +790,3 @@ RT_RET  RTVFilterRockx::fillAIResultToMeta(RtMetaData *meta, void *data) {
         return RT_ERR_NULL_PTR;
     }
 }
-

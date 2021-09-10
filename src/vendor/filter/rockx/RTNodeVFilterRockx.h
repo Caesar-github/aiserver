@@ -19,11 +19,11 @@
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNodeVFILTERROCKX_H_
 
 
-#include "rockit/rt_type.h"            // NOLINT
-#include "rockit/rt_header.h"          // NOLINT
-#include "rockit/RTTaskNode.h"         // NOLINT
-#include "rockit/RTMediaBuffer.h"      // NOLINT
-#include "rockit/RTMediaRockx.h"       // NOLINT
+#include "rt_type.h"            // NOLINT
+#include "rt_header.h"          // NOLINT
+#include "RTTaskNode.h"         // NOLINT
+#include "RTMediaBuffer.h"      // NOLINT
+#include "RTMediaRockx.h"       // NOLINT
 
 class RTNodeVFilterRockx : public RTTaskNode {
  public:
@@ -43,4 +43,3 @@ class RTNodeVFilterRockx : public RTTaskNode {
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNodeVFILTERROCKX_H_
-

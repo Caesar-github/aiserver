@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 #include "RTNodeVFilterEptzDemo.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "RTNodeCommon.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -246,7 +246,7 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
         }  */
         dstBuffer = srcBuffer;
         dstBuffer->extraMeta(streamId)->setInt64(kKeyFramePts, pts);
-        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);  
+        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, (INT32)mLastXY[0] % 2 != 0 ? (INT32)mLastXY[0] - 1 : (INT32)mLastXY[0]);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_Y, (INT32)mLastXY[1] % 2 != 0 ? (INT32)mLastXY[1] - 1 : (INT32)mLastXY[1]);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_W, (INT32)mLastXY[2] % 2 != 0 ? (INT32)mLastXY[2] - 1 : (INT32)mLastXY[2]);
@@ -319,4 +319,3 @@ RTNodeStub node_stub_filter_eptz_demo {
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_eptz_demo);
-

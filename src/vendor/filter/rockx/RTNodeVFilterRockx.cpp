@@ -19,9 +19,9 @@
 #include "RTNodeVFilterRockx.h"       // NOLINT
 #include "RTVFilterRockx.h"
 
-#include "rockit/rt_log.h"                   // NOLINT
-#include "rockit/rt_string_utils.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "rt_log.h"                   // NOLINT
+#include "rt_string_utils.h"          // NOLINT
+#include "RTNodeCommon.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -203,4 +203,3 @@ RTNodeStub node_stub_filter_rockx {
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_rockx);
-

@@ -5,7 +5,7 @@
 #ifndef _RK_AI_TASK_HANDLER_H_
 #define _RK_AI_TASK_HANDLER_H_
 
-#include "rockit/RTMediaBuffer.h"
+#include "RTMediaBuffer.h"
 
 namespace rockchip {
 namespace aiserver {
@@ -27,4 +27,3 @@ class AITaskHandler {
 
 
 #endif // _RK_AI_TASK_HANDLER_H_
-

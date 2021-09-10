@@ -24,8 +24,8 @@
 #include <thread>
 
 #include "RTFecProcessor.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTTaskNode.h"
+#include "RTMediaRockx.h"
+#include "RTTaskNode.h"
 
 #define NODE_NAME_RK_FEC "rkfec"
 

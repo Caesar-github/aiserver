@@ -5,7 +5,7 @@
 #include "rockx_task_handler.h"
 #include "logger/log.h"
 #include "nn_vision_rockx.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTAIDetectResults.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG

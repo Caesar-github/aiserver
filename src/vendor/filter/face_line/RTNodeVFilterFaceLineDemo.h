@@ -18,9 +18,9 @@
 #ifndef SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACELINEDEMO_H_
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACELINEDEMO_H_
 
-#include "rockit/RTTaskNode.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTTaskNode.h"
+#include "RTMediaRockx.h"
+#include "RTAIDetectResults.h"
 #include <unistd.h>
 #include "face_line_type.h"
 
@@ -70,4 +70,3 @@ private:
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACELINEDEMO_H_
-

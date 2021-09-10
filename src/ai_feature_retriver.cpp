@@ -6,8 +6,8 @@
 #include "logger/log.h"
 #include "nn_data.pb.h"
 #include "shm_control_feature.h"
-#include "rockit/RTMediaBuffer.h"
-#include "rockit/RTMediaMetaKeys.h"
+#include "RTMediaBuffer.h"
+#include "RTMediaMetaKeys.h"
 
 namespace rockchip {
 namespace aiserver {

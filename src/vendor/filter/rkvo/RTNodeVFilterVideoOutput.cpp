@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 #include "RTNodeVFilterVideoOutput.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "RTNodeCommon.h"
 #include <sys/time.h>
 #ifdef RV1126_RV1109
 #include "drmDsp.h"
@@ -139,6 +139,8 @@ static RK_S32 VO_ENABLE()
         RK_LOGE("[%s] Enalbe chn failed, s32Ret = %d\n", __func__, s32Ret);
         return RK_FAILURE;
     }
+
+    return RK_SUCCESS;
 }
 
 RTNodeVFilterVideoOutput::RTNodeVFilterVideoOutput() {

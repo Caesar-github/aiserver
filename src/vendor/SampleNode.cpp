@@ -4,9 +4,9 @@
 #include <cstring>
 #include <stdint.h>
 #include <cstdlib>
-#include <rockit/RTTaskNodeContext.h>
-#include <rockit/RTTaskNode.h>
-#include <rockit/RTMediaBuffer.h>
+#include <RTTaskNodeContext.h>
+#include <RTTaskNode.h>
+#include <RTMediaBuffer.h>
 
 #define kStubRockitDemo  MKTAG('r', 'k', 'd', 'm')
 
@@ -78,4 +78,3 @@ RTNodeStub node_stub_rockit_demo {
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_rockit_demo);
-

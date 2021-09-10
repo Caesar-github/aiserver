@@ -21,8 +21,8 @@
 #ifndef _RK_AI_UVC_GRAPH_H_
 #define _RK_AI_UVC_GRAPH_H_
 
-#include "rockit/rt_header.h"
-#include "rockit/RTTaskGraph.h"
+#include "rt_header.h"
+#include "RTTaskGraph.h"
 
 #define NN_MODE_ST_ASTERIA              "st_asteria"
 #define NN_MODE_ROCKX                   "rockx"

@@ -18,9 +18,9 @@
 #ifndef SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACEAEDEMO_H_
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACEAEDEMO_H_
 
-#include "rockit/RTTaskNode.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTTaskNode.h"
+#include "RTMediaRockx.h"
+#include "RTAIDetectResults.h"
 #include "faceae_type.h"
 
 class RTNodeVFilterFaceAE : public RTTaskNode
@@ -54,4 +54,3 @@ private:
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERFACEAEDEMO_H_
-

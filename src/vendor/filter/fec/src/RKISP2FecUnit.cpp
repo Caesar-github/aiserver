@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "rockit/rt_log.h"
+#include "rt_log.h"
 
 #define ALIGN(value, align) ((value + align - 1) & ~(align - 1))
 #if 0

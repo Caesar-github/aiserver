@@ -19,9 +19,9 @@
 #include <unistd.h>
 
 #include "RTNodeVFilterZoom.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
-#include "rockit/RTMediaBuffer.h"
-#include "rockit/RTMediaMetaKeys.h"
+#include "RTNodeCommon.h"
+#include "RTMediaBuffer.h"
+#include "RTMediaMetaKeys.h"
 
 #include <sys/mman.h>
 
@@ -37,7 +37,7 @@
 #define UVC_EPTZ_TILT_MAX            20.0
 #define UVC_EPTZ_TILT_COUNT          40.0
 
-#define ALIGN2(x)                   (x- x % 2)       
+#define ALIGN2(x)                   (x- x % 2)
 
 #define REQUEST16B9                  1
 
@@ -105,8 +105,8 @@ RT_RET RTNodeVFilterZoom::process(RTTaskNodeContext *context) {
         streamId = context->getOutputInfo()->streamId();
         dstBuffer = srcBuffer;
         dstBuffer->extraMeta(streamId)->setInt64(kKeyFramePts, pts);
-        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);  
-        dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, format);  
+        dstBuffer->extraMeta(streamId)->setInt32(kKeyFrameSequence, seq);
+        dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, format);
 
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_X, mResult[0]);
         dstBuffer->extraMeta(streamId)->setInt32(OPT_FILTER_RECT_Y, mResult[1]);
@@ -127,7 +127,7 @@ RT_RET RTNodeVFilterZoom::process(RTTaskNodeContext *context) {
 }
 
 void RTNodeVFilterZoom::RTZoomCalculate(){
-    RT_LOGD("RTZoomCalculate enter , mZoomValue %.2f mZoomValueNow %.2f mPanValue %d mPanValueNow %d mTiltValue %d mTiltValueNow %d", 
+    RT_LOGD("RTZoomCalculate enter , mZoomValue %.2f mZoomValueNow %.2f mPanValue %d mPanValueNow %d mTiltValue %d mTiltValueNow %d",
     mZoomValue, mZoomValueNow, mPanValue, mPanValueNow, mTiltValue, mTiltValueNow);
     if (mZoomValue > 10 || mZoomValueNow > 10) {
         mIsZoomSet = true;
@@ -155,7 +155,7 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
     float zoomPerCrease = mSrcWidth * 1.0 / 16.0 / 80.0 * ratio;
 
     RT_LOGD("zoomIndex %d , ratio %.2f zoomPerCrease %.2f", zoomIndex, ratio, zoomPerCrease);
-    RT_LOGD("mEPTZ Orignal xywh[%d %d %d %d] srcwh[%d %d] dstwh[%d %d]", 
+    RT_LOGD("mEPTZ Orignal xywh[%d %d %d %d] srcwh[%d %d] dstwh[%d %d]",
     mEptzOffsetX, mEptzOffsetY, mEptzWidth, mEptzHeight,
     mSrcWidth, mSrcHeight, mDstWidth, mDstHeight);
 
@@ -198,7 +198,7 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
                  mTiltValueNow += 3;
             else
                 mTiltValueNow += 1;
-        } 
+        }
     }else {
         mPanValueNow = mPanValue;
         mTiltValueNow = mTiltValue;
@@ -208,7 +208,7 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
     float tilt_value = (zoomIndex * zoomPerCrease * 9) * (mTiltValueNow + UVC_EPTZ_TILT_MAX) / UVC_EPTZ_TILT_COUNT;
     mEptzOffsetXF = (float)(mEptzOffsetX) + pan_value;
     mEptzOffsetYF = (float)(mEptzOffsetY) + tilt_value;
-    
+
     if(REQUEST16B9 && ((mDstWidth == 640 && mDstHeight == 480) ||
         (mDstWidth == 320 && mDstHeight == 240))){
         float modify_x = mEptzWidthF -  (float)(mEptzHeightF) * 4 / 3;
@@ -248,7 +248,7 @@ RT_RET RTNodeVFilterZoom::invokeInternal(RtMetaData *meta) {
         RT_LOGD("unsupported command=%d", command);
         break;
     }
-    
+
     RT_LOGD("invokeInternal, mZoomValue %.2f mPanValue %d mTiltValue %d mDstWH[%d %d]",
              mZoomValue, mPanValue, mTiltValue, mDstWidth, mDstHeight);
 
@@ -278,4 +278,3 @@ RTNodeStub node_stub_filter_zoom_demo {
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_zoom_demo);
-

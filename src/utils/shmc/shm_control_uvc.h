@@ -11,8 +11,8 @@
 #include <thread>
 #include <vector>
 #include <uvc_data.pb.h>
-#include "rockit/RTMediaBuffer.h"
-#include "rockit/rt_metadata.h"
+#include "RTMediaBuffer.h"
+#include "rt_metadata.h"
 #include "dbus_graph_control.h"
 
 #define UVC_DYNAMIC_DEBUG 1 //release version can set to 0

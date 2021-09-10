@@ -41,8 +41,8 @@
 
 //#include "RTMeshGenerator.h"
 #include "RTNodeVFilterFec.h"     // NOLINT
-#include "rockit/RTMediaBuffer.h" // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "RTMediaBuffer.h" // NOLINT
+#include "RTNodeCommon.h"
 
 #define ISPP_MAX_VIDEO_NODE 60
 #define MESH_PATH "/oem/usr/share/mesh"

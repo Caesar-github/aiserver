@@ -33,9 +33,9 @@
 #include <sys/prctl.h>
 
 #include "ai_uvc_graph.h"
-#include "rockit/RTTaskGraph.h"
-#include "rockit/RTMediaMetaKeys.h"
-#include "rockit/rt_string_utils.h"
+#include "RTTaskGraph.h"
+#include "RTMediaMetaKeys.h"
+#include "rt_string_utils.h"
 
 #define UVC_GRAPH_CONFIG_FILE               "/oem/usr/share/aiserver/aicamera.json"
 #define SUBGRAPH_STASTERIA_CONFIG_FILE      "/oem/usr/share/aiserver/subgraph_stasteria.json"

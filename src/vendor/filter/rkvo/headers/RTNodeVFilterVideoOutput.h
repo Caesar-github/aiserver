@@ -18,25 +18,16 @@
 #ifndef SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTER_VIDEO_OUTPUT_H_
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTER_VIDEO_OUTPUT_H_
 
-#include "rockit/RTTaskNode.h"
-#include "rockit/RTMediaRockx.h"
-#include "rockit/RTAIDetectResults.h"
+#include "RTTaskNode.h"
+#include "RTMediaRockx.h"
+#include "RTAIDetectResults.h"
 
-#include "rockit/rk_debug.h"
-#include "rockit/rk_mpi_sys.h"
-#include "rockit/rk_mpi_vo.h"
-#include "rockit/rk_mpi_vdec.h"
-#include "rockit/rk_mpi_mb.h"
-#include "rockit/rk_common.h"
-// #include "rockit/mpi/mpi_test_utils.h"
-// #include "rockit/mpi/argparse.h"
-
-/* extern "C" {
-    #include "avformat.h"
-    #include "version.h"
-    #include "avutil.h"
-    #include "opt.h"
-} */
+#include "rk_debug.h"
+#include "rk_mpi_sys.h"
+#include "rk_mpi_vo.h"
+#include "rk_mpi_vdec.h"
+#include "rk_mpi_mb.h"
+#include "rk_common.h"
 
 #define MAX_FRAME_QUEUE              8
 #define MAX_TIME_OUT_MS              20

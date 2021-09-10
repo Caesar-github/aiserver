@@ -7,7 +7,7 @@
 
 #include <mutex>
 #include "ai_task_manager.h"
-#include "rockit/RTAIGraph.h"
+#include "RTAIGraph.h"
 
 #define PRELOAD_HANDLE_FEATURE   1
 #define PRELOAD_HANDLE_AI        1
@@ -41,6 +41,3 @@ class AIFeatureRetriver {
 
 
 #endif // _RK_AI_FEATURE_RETRIVER_H_
-
-
-

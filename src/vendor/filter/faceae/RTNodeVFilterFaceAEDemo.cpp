@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 #include "RTNodeVFilterFaceAEDemo.h"          // NOLINT
-#include "rockit/RTNodeCommon.h"
+#include "RTNodeCommon.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -378,4 +378,3 @@ RTNodeStub node_stub_filter_faceae_demo
 };
 
 RT_NODE_FACTORY_REGISTER_STUB(node_stub_filter_faceae_demo);
-

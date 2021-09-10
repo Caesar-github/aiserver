@@ -18,7 +18,7 @@
 #ifndef SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERZOOM_H_
 #define SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERZOOM_H_
 
-#include "rockit/RTTaskNode.h"
+#include "RTTaskNode.h"
 
 class RTNodeVFilterZoom : public RTTaskNode {
  public:
@@ -49,10 +49,9 @@ class RTNodeVFilterZoom : public RTTaskNode {
     bool            mIsZoomSet;
     INT32           mResult[4];
     void            RTZoomCalculate();
-    
+
 protected:
     virtual RT_RET invokeInternal(RtMetaData *meta);
 };
 
 #endif  // SRC_RT_TASK_TASK_NODE_FILTER_RTNODEVFILTERZOOM_H_
-
