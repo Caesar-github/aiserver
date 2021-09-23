@@ -41,6 +41,7 @@ enum ShmUVCMessageType {
     MSG_UVC_CONFIG_CAMERA = 6,
     MSG_UVC_SET_EPTZ_PAN = 7,
     MSG_UVC_SET_EPTZ_TILT = 8,
+    MSG_UVC_ENABLE_BYPASS  = 9,
 };
 
 class ShmUVCController {

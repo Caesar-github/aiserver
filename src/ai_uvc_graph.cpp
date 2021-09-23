@@ -82,6 +82,7 @@
 #define RT_FEATURE_UVC_RGA          0x00000005
 #define RT_FEATURE_UVC_RGA_ZOOM     0x00000007
 #define RT_FEATURE_FACE_LINE        0x00000008
+#define RT_FEATURE_UVC_BYPASS       0x00000009
 
 #define RT_FEATURE_NN               0x00000010
 #define RT_FEATURE_AIMATTING        0x00000100
@@ -360,6 +361,9 @@ RT_RET AIUVCGraph::selectLinkMode() {
             break;
           case RT_FEATURE_EPTZ:
             ctx->mTaskGraph->selectLinkMode("eptz");
+            break;
+          case RT_FEATURE_UVC_BYPASS:
+            ctx->mTaskGraph->selectLinkMode("uvc_bypass");
             break;
           case RT_FEATURE_UVC_ZOOM:
             ctx->mTaskGraph->selectLinkMode("uvc_zoom");
@@ -911,6 +915,46 @@ __FAILED:
     return ret;
 }
 
+RT_RET AIUVCGraph::linkBYPASS(RT_BOOL enable) {
+    AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
+    RtMutex::RtAutolock autoLock(ctx->mStateMutex);
+    RT_RET ret = RT_OK;
+    INT32 isBYPASS = RT_FALSE;
+    if (!ctx->mTaskGraph->hasLinkMode("uvc_bypass")) {
+        RT_LOGE("link mode(uvc_bypass) unsupport");
+        return RT_ERR_UNSUPPORT;
+    }
+
+    isBYPASS = ((ctx->mFeature & RT_FEATURE_UVC_MASK) ==  RT_FEATURE_UVC_BYPASS)
+                 ? RT_TRUE : RT_FALSE;
+    if (isBYPASS == enable) {
+        RT_LOGE("eptz mode already is %s", enable ? "bypass" : "non-bypass");
+        return ret;
+    }
+    RT_LOGD("zoom %f enable bypass %d isBYPASS %d", ctx->mZoom, enable, isBYPASS);
+    ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
+    if (ctx->mZoom != 1.0f) {
+        if (enable) {
+            ctx->mFeature |= RT_FEATURE_UVC_BYPASS;
+        }else{
+            ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
+        }
+    } else {
+        if (enable) {
+            ctx->mFeature |= RT_FEATURE_UVC_BYPASS;
+        } else {
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+                ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
+            } else {
+                ctx->mFeature |= RT_FEATURE_UVC;
+            }
+        }
+    }
+
+    selectLinkMode();
+    return ret;
+}
+
 RT_RET AIUVCGraph::enableEPTZ(RT_BOOL enableEPTZ) {
     AIUVCGraphCtx * ctx = getUVCGraphCtx(mCtx);
     RtMutex::RtAutolock autoLock(ctx->mStateMutex);
@@ -1088,6 +1132,8 @@ RT_RET AIUVCGraph::setEptz(AI_UVC_EPTZ_MODE mode, int val) {
         break;
       case AI_UVC_EPTZ_AUTO:
         return enableEPTZ(val ? RT_TRUE : RT_FALSE);
+      case AI_UVC_BYPASS_LINK:
+        return linkBYPASS(val ? RT_TRUE : RT_FALSE);
       default:
         RT_LOGE("unsupport eptz mode:%d", mode);
         return RT_ERR_UNKNOWN;

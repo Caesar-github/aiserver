@@ -203,6 +203,8 @@ int32_t AISceneDirector::setEPTZ(const AI_UVC_EPTZ_MODE &mode, const int32_t &va
             meta.setCString(kKeyPipeInvokeCmd, "set_pan");
         if(mode == AI_UVC_EPTZ_TILT)
             meta.setCString(kKeyPipeInvokeCmd, "set_tilt");
+        if(mode == AI_UVC_BYPASS_LINK)
+            meta.setCString(kKeyPipeInvokeCmd, "set_bypass");
         meta.setInt32("value", val);
         mUVCGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &meta);
         LOG_INFO("set ptz ok\n");

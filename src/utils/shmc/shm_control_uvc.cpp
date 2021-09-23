@@ -200,6 +200,12 @@ void ShmUVCController::handleUVCMessage(std::string &msg) {
         graphListener->setEPTZ(AI_UVC_EPTZ_TILT, tilt);
         break;
       }
+      case MSG_UVC_ENABLE_BYPASS: {
+        MethodParams methodParams = message.method_params();
+        int enabled = methodParams.i32_p();
+        graphListener->setEPTZ(AI_UVC_BYPASS_LINK, enabled);
+        break;
+      }
       default:
         LOG_ERROR("recv uvc unknown message\n");
         break;

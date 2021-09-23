@@ -46,6 +46,7 @@ typedef enum _AI_UVC_EPTZ_MODE {
     AI_UVC_EPTZ_TILT = 1,
     AI_UVC_EPTZ_ROLL = 2,  // no support now
     AI_UVC_EPTZ_AUTO = 3,
+    AI_UVC_BYPASS_LINK = 4,
 } AI_UVC_EPTZ_MODE;
 
 enum RTRgaRole {
@@ -74,6 +75,7 @@ class AIUVCGraph {
     RT_RET setCameraParams();
 
     RT_RET enableEPTZ(RT_BOOL enableEPTZ);
+    RT_RET linkBYPASS(RT_BOOL enable);
     RT_RET setZoom(float val);
     RT_RET setEptz(AI_UVC_EPTZ_MODE mode, int val);
     RT_RET openUVC();

@@ -54,7 +54,7 @@ if (${ENABLE_SAMPLE_NODE_ROCKX})
 endif()
 
 # vendor face line node
-option(ENABLE_SAMPLE_NODE_FACE_LINE  "enable face_line node" OFF)
+option(ENABLE_SAMPLE_NODE_FACE_LINE  "enable face_line node" ON)
 if (${ENABLE_SAMPLE_NODE_FACE_LINE})
     set(SRC_FILES_VENDOR
         ${SRC_FILES_VENDOR}
