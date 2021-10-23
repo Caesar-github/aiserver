@@ -84,16 +84,10 @@ RT_RET RTNodeVFilterZoom::process(RTTaskNodeContext *context) {
         srcVFrame = reinterpret_vframe(context->dequeInputBuffer());
         RT_ASSERT(srcVFrame != RT_NULL);
 
-        if (srcVFrame->getOpRect().x != 0) {
+        if (srcVFrame->getOpRect().w != 0 && srcVFrame->getOpRect().h != 0) {
             mEptzOffsetX = srcVFrame->getOpRect().x;
-        }
-        if (srcVFrame->getOpRect().y != 0) {
             mEptzOffsetY = srcVFrame->getOpRect().y;
-        }
-        if (srcVFrame->getOpRect().w != 0) {
             mEptzWidth = srcVFrame->getOpRect().w;
-        }
-        if (srcVFrame->getOpRect().h != 0) {
             mEptzHeight = srcVFrame->getOpRect().h;
         }
         mSrcWidth = srcVFrame->getVirWidth();
