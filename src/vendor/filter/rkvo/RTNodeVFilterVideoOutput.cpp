@@ -197,7 +197,7 @@ RT_RET RTNodeVFilterVideoOutput::process(RTTaskNodeContext *context) {
 #ifdef RV1126_RV1109
         if (drmInitSuccess)
         {
-            ret = drmDspFrame(mSrcWidth, mSrcHeight, srcBuffer->getData(), DRM_FORMAT_NV12);
+            ret = drmDspFrame(srcBuffer->getWidth(), srcBuffer->getHeight(), srcBuffer->getData(), DRM_FORMAT_NV12);
             if (ret == RT_OK) {
                 if (!access(HDMI_RKVO_DEBUG_FPS, 0)) {
                     ++frameCount;
