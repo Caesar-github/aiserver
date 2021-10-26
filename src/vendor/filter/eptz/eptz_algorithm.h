@@ -40,6 +40,7 @@ typedef struct _EptzInitInfo {
   INT32 eptz_fast_move_frame_judge;  //人物移动防抖阈值
   INT32 eptz_zoom_frame_judge;       //人物移动ZOOM防抖阈值
   INT32 eptz_zoom_speed;             //人脸跟踪ZOOM效果转换速度
+  INT32 eptz_animation;              //人物移动动画效果
 } EptzInitInfo;
 
 /*
