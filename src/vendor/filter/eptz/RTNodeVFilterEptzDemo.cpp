@@ -64,11 +64,11 @@ RT_RET RTNodeVFilterEptz::open(RTTaskNodeContext *context) {
     mEptzInfo.eptz_npu_height = 360;
     //V2远距离建议0.4，V3近距离建议0.6
     mEptzInfo.eptz_facedetect_score_shold = 0.40;
-    mEptzInfo.eptz_zoom_speed = 1;
+    mEptzInfo.eptz_zoom_speed = 2;
     mEptzInfo.eptz_fast_move_frame_judge = 5;
     mEptzInfo.eptz_zoom_frame_judge = 10;
-    mEptzInfo.eptz_threshold_x = 80;
-    mEptzInfo.eptz_threshold_y = 45;
+    mEptzInfo.eptz_threshold_x = 120;
+    mEptzInfo.eptz_threshold_y = 100;
     mEptzInfo.eptz_animation = EPTZ_NONLINEAR;
     if (mEptzInfo.camera_dst_width >= 1920) {
         mEptzInfo.eptz_iterate_x = 12;

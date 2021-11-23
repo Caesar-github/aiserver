@@ -105,4 +105,10 @@ void changeEptzConfig(char *config_path);
  */
 void setEptzMode(INT32 mode);
 
+/*
+ * 说明：定制私有功能标志位
+ * parameter
+ */
+void setPrivateFlg(INT32 flag);
+
 #endif // EPTZ_ALGORITHM_H_
