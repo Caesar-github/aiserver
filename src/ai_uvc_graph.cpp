@@ -990,6 +990,14 @@ RT_RET AIUVCGraph::enableEPTZ(RT_BOOL enableEPTZ) {
             }
         }
     }
+    if(isEPTZ && !enableEPTZ){
+        RT_LOGD("eptz close reset zoom position");
+        RtMetaData params;
+        params.clear();
+        params.setInt32(kKeyTaskNodeId,      ZOOM_RGA_NODE_ID);
+        params.setCString(kKeyPipeInvokeCmd, "reset_position");
+        ret = ctx->mTaskGraph->invoke(GRAPH_CMD_TASK_NODE_PRIVATE_CMD, &params);
+    }
 
     selectLinkMode();
     return ret;

@@ -245,6 +245,13 @@ RT_RET RTNodeVFilterZoom::invokeInternal(RtMetaData *meta) {
             RT_ASSERT(meta->findInt32("value", &mTiltValue));
             mTiltValue = mTiltValue * 2;
             break;
+        RTSTRING_CASE("reset_position"):
+          RT_LOGD("zoom reset position [0 0 %d %d]", mSrcWidth, mSrcHeight);
+          mEptzOffsetX = 0;
+          mEptzOffsetY = 0;
+          mEptzWidth = mSrcWidth;
+          mEptzHeight = mSrcHeight;
+        break;
       default:
         RT_LOGD("unsupported command=%d", command);
         break;
