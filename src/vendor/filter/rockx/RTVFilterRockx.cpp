@@ -36,6 +36,7 @@
 #include "RTNodeCommon.h"             // NOLINT
 #include "RTAIDetectResults.h"        // NOLINT
 #include "RTNodeCommon.h"             // NOLINT
+#include "RTVideoFrame.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -540,6 +541,7 @@ RT_RET RTVFilterRockx::doFilter(RTMediaBuffer *src, RtMetaData *extraInfo, RTMed
     RT_RET err = RT_OK;
 
     RTRockxContext *ctx = getRockxCtx(mCtx);
+    RTVideoFrame *vframe = reinterpret_vframe(src);
     if ((RT_NULL == ctx) || (RT_NULL == src)) {
         return RT_ERR_NULL_PTR;
     }
@@ -557,28 +559,14 @@ RT_RET RTVFilterRockx::doFilter(RTMediaBuffer *src, RtMetaData *extraInfo, RTMed
         return err;
     }
     #endif
-    RtMetaData* meta = extraInfo;
-    INT32 width  = ctx->mCfg.width;
-    INT32 height = ctx->mCfg.height;
+    INT32 width  = vframe->getWidth();
+    if(width == 0)
+      width  = ctx->mCfg.width;
+    INT32 height = vframe->getHeight();
+    if(height == 0)
+      height = ctx->mCfg.height;
     rockx_pixel_format format = getRockxPixelFmt(ctx->mCfg.format);
 
-    // if parameter is config in every frame, using parameter in frame first
-    if (!meta->findInt32(OPT_FILTER_WIDTH, &width)
-           && !meta->findInt32(kKeyFrameW,  &width)) {
-        RT_LOGD_IF(DEBUG_FLAG, "failed to find ROCKX_FRAME_WIDTH");
-    }
-    if (!meta->findInt32(OPT_FILTER_HEIGHT, &height)
-           && !meta->findInt32(kKeyFrameH, &height)) {
-        RT_LOGD_IF(DEBUG_FLAG, "failed to find ROCKX_FRAME_HEIGHT");
-        height = ctx->mCfg.height;
-    }
-
-    const char* value = RT_NULL;
-    if (!meta->findCString(OPT_STREAM_FMT_IN, &value)) {
-        RT_LOGD_IF(DEBUG_FLAG, "failed to find ROCKX_PIX_FMT");
-    } else {
-        format = getRockxPixelFmt(value);
-    }
 
     RT_LOGD_IF(DEBUG_FLAG, "%dx%d, format:%d", width, height, format);
     if (width == 0 || height == 0 || format == ROCKX_PIXEL_FORMAT_MAX) {
