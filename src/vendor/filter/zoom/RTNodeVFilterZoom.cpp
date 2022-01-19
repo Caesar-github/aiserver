@@ -210,7 +210,8 @@ void RTNodeVFilterZoom::RTZoomCalculate(){
     mEptzOffsetXF = (float)(mEptzOffsetX) + pan_value;
     mEptzOffsetYF = (float)(mEptzOffsetY) + tilt_value;
 
-    if(REQUEST16B9 && ((mDstWidth == 640 && mDstHeight == 480) ||
+    if(REQUEST16B9 && ((mDstWidth == 1024 && mDstHeight == 768) ||
+        (mDstWidth == 640 && mDstHeight == 480) ||
         (mDstWidth == 320 && mDstHeight == 240))){
         float modify_x = mEptzWidthF -  (float)(mEptzHeightF) * 4 / 3;
         mEptzWidthF = mEptzWidthF - modify_x;

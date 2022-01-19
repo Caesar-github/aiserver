@@ -313,7 +313,8 @@ RT_RET AIUVCGraph::openUVC() {
     }
 
     ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-    if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+    if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+        (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
         ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
     } else {
         ctx->mFeature |= RT_FEATURE_UVC;
