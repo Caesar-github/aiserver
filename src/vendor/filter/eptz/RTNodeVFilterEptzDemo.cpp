@@ -169,67 +169,6 @@ RT_RET RTNodeVFilterEptz::process(RTTaskNodeContext *context) {
             continue;
         count--;
         mSequeFrame++;
-/*
-        if(isMoving()){
-            RT_LOGE("eptz frame moving");
-            rga_info_t srcInfo, dstInfo;
-            rt_memset(&srcInfo, 0, sizeof(srcInfo));
-            rt_memset(&dstInfo, 0, sizeof(dstInfo));
-
-            srcInfo.fd = srcBuffer->getFd();
-            if (srcInfo.fd < 0) {
-                srcInfo.virAddr = reinterpret_cast<void *>(srcBuffer->getData());
-                srcInfo.phyAddr = reinterpret_cast<void *>(srcBuffer->getPhyAddr());
-            }
-            srcInfo.mmuFlag  = 1;
-            rga_set_rect(&srcInfo.rect, 0, 0,
-                        mSrcWidth, mSrcHeight, mSrcWidth, mSrcHeight, RK_FORMAT_YCbCr_420_SP);
-
-            //dstInfo.fd = mDrmBufferMap.buf_fd;
-            dstInfo.fd = dstBuffer->getFd();
-            if (srcInfo.fd < 0) {
-                srcInfo.virAddr = reinterpret_cast<void *>(srcBuffer->getData());
-                srcInfo.phyAddr = reinterpret_cast<void *>(srcBuffer->getPhyAddr());
-            }
-            dstInfo.mmuFlag  = 1;
-            rga_set_rect(&dstInfo.rect, 0, 0,
-                        mSrcWidth, mSrcHeight, mSrcWidth, mSrcHeight, RK_FORMAT_RGBA_8888);
-
-            //sync buffer
-            // struct dma_buf_sync sync = { 0 };
-            // if (srcBuffer->getFd() < 0) {
-            //     //break;
-            // }else{
-            //     sync.flags = DMA_BUF_SYNC_RW | DMA_BUF_SYNC_START;
-            //     int ret = ioctl(srcBuffer->getFd(), DMA_BUF_IOCTL_SYNC, &sync);
-            //     sync.flags = DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END;
-            //     ret = ioctl(srcBuffer->getFd(), DMA_BUF_IOCTL_SYNC, &sync);
-            //     if(ret < 0){
-            //         RT_LOGE("rga drm buf sync error");
-            //     }
-            // }
-            RgaBlit(&srcInfo, &dstInfo, NULL);
-            static bool flag = true;
-            if(flag){
-                flag = false;
-                FILE *file = fopen("/tmp/rgba8888.bin","w+b");
-                if(file){
-                  char *buffer = (char *)drm_map_buffer(drmFd, mDrmBufferMap.handle, mDrmBufferMap.size);
-                  fwrite(buffer, 1 , mDrmBufferMap.size, file);
-                  fclose(file);
-                  drm_unmap_buffer(buffer, mDrmBufferMap.size);
-                }
-
-            }
-            dstBuffer = srcBuffer;
-            dstBuffer->setFd(dstInfo.fd);
-            //dstBuffer->setSize(mSrcWidth * mSrcHeight *4);
-            dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, RT_FMT_ARGB8888);
-        }else{
-            RT_LOGE("eptz frame not moving");
-            dstBuffer = srcBuffer;
-            dstBuffer->extraMeta(streamId)->setInt32(OPT_VIDEO_PIX_FORMAT, RT_FMT_YUV420SP);
-        }  */
         RTRect srcRect;
         RTCropInfo dstCropInfo;
         RTVideoFrame *srcVFrame = RT_NULL;
