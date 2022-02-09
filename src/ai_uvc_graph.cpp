@@ -944,7 +944,8 @@ RT_RET AIUVCGraph::linkBYPASS(RT_BOOL enable) {
         if (enable) {
             ctx->mFeature |= RT_FEATURE_UVC_BYPASS;
         } else {
-            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+               (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
                 ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
             } else {
                 ctx->mFeature |= RT_FEATURE_UVC;
@@ -984,7 +985,8 @@ RT_RET AIUVCGraph::enableEPTZ(RT_BOOL enableEPTZ) {
         if (enableEPTZ) {
             ctx->mFeature |= RT_FEATURE_EPTZ;
         } else {
-            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+               (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
                 ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
             } else {
                 ctx->mFeature |= RT_FEATURE_UVC;
@@ -1058,7 +1060,8 @@ RT_RET AIUVCGraph::setZoom(float val) {
             ctx->mFeature |= RT_FEATURE_EPTZ;
         } else if ((ctx->mFeature & RT_FEATURE_UVC_MASK) == RT_FEATURE_UVC_ZOOM) {
             ctx->mFeature &= ~RT_FEATURE_UVC_MASK;
-            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+            if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+               (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
                 ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
             } else {
                 ctx->mFeature |= RT_FEATURE_UVC;
@@ -1170,7 +1173,8 @@ RT_RET AIUVCGraph::setEptz(AI_UVC_EPTZ_MODE mode, int val) {
     if (ctx->mZoom != 1.0f) {
         ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
     } else {
-        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+           (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
             ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
         } else {
             ctx->mFeature |= RT_FEATURE_UVC;
@@ -1231,7 +1235,8 @@ RT_RET AIUVCGraph::setFaceLine(int enable) {
     if (enable) {
         ctx->mFeature |= RT_FEATURE_FACE_LINE;
     } else {
-        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT) {
+        if (ctx->mHeight <= RT_FORCE_USE_RGA_MIN_HEIGHT ||
+           (ctx->mWidth == 1024 && ctx->mHeight == 768)) {
             ctx->mFeature |= RT_FEATURE_UVC_ZOOM;
         } else {
             ctx->mFeature |= RT_FEATURE_UVC;
