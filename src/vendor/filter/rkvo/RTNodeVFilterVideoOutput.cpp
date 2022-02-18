@@ -31,7 +31,7 @@
 #endif
 
 #define LOG_TAG "RTNodeVFilterVideoOutput"
-#define kStubRockitVideoOutputDemo                MKTAG('e', 'p', 'd', 'm')
+#define kStubRockitVideoOutputDemo                MKTAG('r', 'k', 'v', 'o')
 
 static RK_S32 VO_ENABLE()
 {
