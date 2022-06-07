@@ -110,7 +110,7 @@ int initialize_screens(struct sp_dev* dev) {
       printf("failed to set crtc mode ret=%d\n", ret);
       continue;
     }
-    cr->crtc = drmModeGetCrtc(dev->fd, cr->crtc->crtc_id);
+    // cr->crtc = drmModeGetCrtc(dev->fd, cr->crtc->crtc_id);
     /*
      * Todo:
      * I don't know why crtc mode is empty, just copy PREFERRED mode
@@ -141,7 +141,11 @@ void put_sp_plane(struct sp_plane* plane) {
   drmModePlanePtr p;
 
   /* Get the latest plane information (most notably the crtc_id) */
-  p = drmModeGetPlane(plane->dev->fd, plane->plane->plane_id);
+  if (plane->plane){
+    p = plane->plane;
+  } else {
+    p = drmModeGetPlane(plane->dev->fd, plane->plane->plane_id);
+  }
   if (p) plane->plane = p;
 
   if (plane->plane->crtc_id)

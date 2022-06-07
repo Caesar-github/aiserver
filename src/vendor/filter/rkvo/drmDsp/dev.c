@@ -27,7 +27,7 @@ static uint32_t get_prop_id(struct sp_dev* dev,
     drmModeFreeProperty(p);
   }
   if (!prop_id)
-    printf("Could not find %s property\n", name);
+    fprintf(stderr, "Could not find %s property\n", name);
   return prop_id;
 }
 #endif
@@ -52,7 +52,7 @@ static int get_supported_format(struct sp_plane* plane, uint32_t* format) {
       return 0;
     }
   }
-  printf("No suitable formats found!\n");
+  fprintf(stderr, "No suitable formats found!\n");
   return -ENOENT;
 }
 
@@ -64,13 +64,13 @@ struct sp_dev* create_sp_dev(void) {
 
   fd = open("/dev/dri/card0", O_RDWR);
   if (fd < 0) {
-    printf("failed to open card0\n");
+    fprintf(stderr, "failed to open card0\n");
     return NULL;
   }
 
   dev = (struct sp_dev*)calloc(1, sizeof(*dev));
   if (!dev) {
-    printf("failed to allocate dev\n");
+    fprintf(stderr, "failed to allocate dev\n");
     return NULL;
   }
 
@@ -79,19 +79,19 @@ struct sp_dev* create_sp_dev(void) {
 #if 1
   ret = drmSetClientCap(dev->fd, DRM_CLIENT_CAP_ATOMIC, 1);
   if (ret) {
-    printf("failed to set client cap atomic\n");
+    fprintf(stderr, "failed to set client cap atomic\n");
     goto err;
   }
   ret = drmSetClientCap(dev->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
   if (ret) {
-    printf("failed to set client cap\n");
+    fprintf(stderr, "failed to set client cap\n");
     goto err;
   }
 #endif
 
   r = drmModeGetResources(dev->fd);
   if (!r) {
-    printf("failed to get r\n");
+    fprintf(stderr, "failed to get r\n");
     goto err;
   }
 
@@ -99,13 +99,13 @@ struct sp_dev* create_sp_dev(void) {
   dev->connectors = (drmModeConnectorPtr*)calloc(dev->num_connectors,
                                                  sizeof(*dev->connectors));
   if (!dev->connectors) {
-    printf("failed to allocate connectors\n");
+    fprintf(stderr, "failed to allocate connectors\n");
     goto err;
   }
   for (i = 0; i < dev->num_connectors; i++) {
     dev->connectors[i] = drmModeGetConnector(dev->fd, r->connectors[i]);
     if (!dev->connectors[i]) {
-      printf("failed to get connector %d\n", i);
+      fprintf(stderr, "failed to get connector %d\n", i);
       goto err;
     }
   }
@@ -114,13 +114,13 @@ struct sp_dev* create_sp_dev(void) {
   dev->encoders =
       (drmModeEncoderPtr*)calloc(dev->num_encoders, sizeof(*dev->encoders));
   if (!dev->encoders) {
-    printf("failed to allocate encoders\n");
+    fprintf(stderr, "failed to allocate encoders\n");
     goto err;
   }
   for (i = 0; i < dev->num_encoders; i++) {
     dev->encoders[i] = drmModeGetEncoder(dev->fd, r->encoders[i]);
     if (!dev->encoders[i]) {
-      printf("failed to get encoder %d\n", i);
+      fprintf(stderr, "failed to get encoder %d\n", i);
       goto err;
     }
   }
@@ -128,13 +128,13 @@ struct sp_dev* create_sp_dev(void) {
   dev->num_crtcs = r->count_crtcs;
   dev->crtcs = (struct sp_crtc*)calloc(dev->num_crtcs, sizeof(struct sp_crtc));
   if (!dev->crtcs) {
-    printf("failed to allocate crtcs\n");
+    fprintf(stderr, "failed to allocate crtcs\n");
     goto err;
   }
   for (i = 0; i < dev->num_crtcs; i++) {
     dev->crtcs[i].crtc = drmModeGetCrtc(dev->fd, r->crtcs[i]);
     if (!dev->crtcs[i].crtc) {
-      printf("failed to get crtc %d\n", i);
+      fprintf(stderr, "failed to get crtc %d\n", i);
       goto err;
     }
     dev->crtcs[i].scanout = NULL;
@@ -144,7 +144,7 @@ struct sp_dev* create_sp_dev(void) {
 
   pr = drmModeGetPlaneResources(dev->fd);
   if (!pr) {
-    printf("failed to get plane resources\n");
+    fprintf(stderr, "failed to get plane resources\n");
     goto err;
   }
   dev->num_planes = pr->count_planes;
@@ -157,7 +157,7 @@ struct sp_dev* create_sp_dev(void) {
     plane->dev = dev;
     plane->plane = drmModeGetPlane(dev->fd, pr->planes[i]);
     if (!plane->plane) {
-      printf("failed to get plane %d\n", i);
+      fprintf(stderr, "failed to get plane %d\n", i);
       goto err;
     }
     plane->bo = NULL;
@@ -165,7 +165,7 @@ struct sp_dev* create_sp_dev(void) {
 
     ret = get_supported_format(plane, &plane->format);
     if (ret) {
-      printf("failed to get supported format: %d\n", ret);
+      fprintf(stderr, "failed to get supported format: %d\n", ret);
       goto err;
     }
 
@@ -176,7 +176,7 @@ struct sp_dev* create_sp_dev(void) {
     props = drmModeObjectGetProperties(dev->fd, pr->planes[i],
                                        DRM_MODE_OBJECT_PLANE);
     if (!props) {
-      printf("failed to get plane properties\n");
+      fprintf(stderr, "failed to get plane properties\n");
       goto err;
     }
 #if 0  // def USE_ATOMIC_API
@@ -248,34 +248,39 @@ err:
 void destroy_sp_dev(struct sp_dev* dev) {
   int i;
 
-  if (dev->planes) {
-    for (i = 0; i < dev->num_planes; i++) {
-      if (dev->planes[i].in_use) put_sp_plane(&dev->planes[i]);
-      if (dev->planes[i].plane) drmModeFreePlane(dev->planes[i].plane);
-      if (dev->planes[i].bo) free_sp_bo(dev->planes[i].bo);
+  if (dev->connectors) {
+    for (i = 0; i < dev->num_connectors; i++) {
+      if (dev->connectors[i]) drmModeFreeConnector(dev->connectors[i]);
     }
-    free(dev->planes);
-  }
-  if (dev->crtcs) {
-    for (i = 0; i < dev->num_crtcs; i++) {
-      if (dev->crtcs[i].crtc) drmModeFreeCrtc(dev->crtcs[i].crtc);
-      if (dev->crtcs[i].scanout) free_sp_bo(dev->crtcs[i].scanout);
-    }
-    free(dev->crtcs);
+    free(dev->connectors);
+    dev->connectors = NULL;
   }
   if (dev->encoders) {
     for (i = 0; i < dev->num_encoders; i++) {
       if (dev->encoders[i]) drmModeFreeEncoder(dev->encoders[i]);
     }
     free(dev->encoders);
+    dev->encoders = NULL;
   }
-  if (dev->connectors) {
-    for (i = 0; i < dev->num_connectors; i++) {
-      if (dev->connectors[i]) drmModeFreeConnector(dev->connectors[i]);
+  if (dev->crtcs) {
+    for (i = 0; i < dev->num_crtcs; i++) {
+      if (dev->crtcs[i].scanout) free_sp_bo(dev->crtcs[i].scanout);
+      if (dev->crtcs[i].crtc) drmModeFreeCrtc(dev->crtcs[i].crtc);
     }
-    free(dev->connectors);
+    free(dev->crtcs);
+    dev->crtcs = NULL;
+  }
+  if (dev->planes) {
+    for (i = 0; i < dev->num_planes; i++) {
+      if (dev->planes[i].bo) free_sp_bo(dev->planes[i].bo);
+      if (dev->planes[i].in_use) put_sp_plane(&dev->planes[i]);
+      if (dev->planes[i].plane) drmModeFreePlane(dev->planes[i].plane);
+    }
+    free(dev->planes);
+    dev->planes = NULL;
   }
 
   close(dev->fd);
   free(dev);
+  dev = NULL;
 }

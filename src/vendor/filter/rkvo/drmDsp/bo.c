@@ -58,7 +58,7 @@ int add_fb_sp_bo(struct sp_bo* bo, uint32_t format) {
   ret = drmModeAddFB2(bo->dev->fd, bo->width, bo->height, format, handles,
                       pitches, offsets, &bo->fb_id, bo->flags);
   if (ret) {
-    printf("failed to create fb ret=%d\n", ret);
+    fprintf(stderr, "failed to create fb ret=%d\n", ret);
     return ret;
   }
   return 0;
@@ -73,14 +73,14 @@ static int map_sp_bo(struct sp_bo* bo) {
   md.handle = bo->handle;
   ret = drmIoctl(bo->dev->fd, DRM_IOCTL_MODE_MAP_DUMB, &md);
   if (ret) {
-    printf("failed to map sp_bo ret=%d\n", ret);
+    fprintf(stderr, "failed to map sp_bo ret=%d\n", ret);
     return ret;
   }
 
   bo->map_addr = mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                       bo->dev->fd, md.offset);
   if (bo->map_addr == MAP_FAILED) {
-    printf("failed to map bo ret=%d\n", -errno);
+    fprintf(stderr, "failed to map bo ret=%d\n", -errno);
     return -errno;
   }
   return 0;
@@ -105,7 +105,7 @@ struct sp_bo* create_sp_bo(struct sp_dev* dev, uint32_t width, uint32_t height,
 
   ret = drmIoctl(dev->fd, DRM_IOCTL_MODE_CREATE_DUMB, &cd);
   if (ret) {
-    printf("failed to create sp_bo %d\n", ret);
+    fprintf(stderr, "failed to create sp_bo %d\n", ret);
     goto err;
   }
 
@@ -123,14 +123,14 @@ struct sp_bo* create_sp_bo(struct sp_dev* dev, uint32_t width, uint32_t height,
 #if 0
   ret = add_fb_sp_bo(bo, format);
   if (ret) {
-    printf("failed to add fb ret=%d\n", ret);
+    fprintf(stderr, "failed to add fb ret=%d\n", ret);
     goto err;
   }
 #endif
 
   ret = map_sp_bo(bo);
   if (ret) {
-    printf("failed to map bo ret=%d\n", ret);
+    fprintf(stderr, "failed to map bo ret=%d\n", ret);
     goto err;
   }
 
@@ -151,13 +151,13 @@ void free_sp_bo(struct sp_bo* bo) {
 
   if (bo->fb_id) {
     ret = drmModeRmFB(bo->dev->fd, bo->fb_id);
-    if (ret) printf("Failed to rmfb ret=%d!\n", ret);
+    if (ret) fprintf(stderr, "Failed to rmfb ret=%d!\n", ret);
   }
 
   if (bo->handle) {
     dd.handle = bo->handle;
     ret = drmIoctl(bo->dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &dd);
-    if (ret) printf("Failed to destroy buffer ret=%d\n", ret);
+    if (ret) fprintf(stderr, "Failed to destroy buffer ret=%d\n", ret);
   }
 
   free(bo);

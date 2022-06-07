@@ -9,8 +9,8 @@
 
 #include "bo.h"
 #include "dev.h"
-#include "modeset.h"
 #include "drmDsp.h"
+#include "modeset.h"
 
 struct drmDsp {
   struct fb_var_screeninfo vinfo;
@@ -33,19 +33,19 @@ int initDrmDsp() {
 
   pDrmDsp->dev = create_sp_dev();
   if (!pDrmDsp->dev) {
-    printf("Failed to create sp_dev\n");
+    fprintf(stderr, "Failed to create sp_dev\n");
     return -1;
   }
 
   ret = initialize_screens(pDrmDsp->dev);
   if (ret) {
-    printf("Failed to initialize screens\n");
+    fprintf(stderr, "Failed to initialize screens\n");
     return ret;
   }
   pDrmDsp->plane = (struct sp_plane**)calloc(pDrmDsp->dev->num_planes,
                                              sizeof(struct sp_plane*));
   if (!pDrmDsp->plane) {
-    printf("Failed to allocate plane array\n");
+    fprintf(stderr, "Failed to allocate plane array\n");
     return -1;
   }
 
@@ -56,13 +56,26 @@ int initDrmDsp() {
     if (is_supported_format(pDrmDsp->plane[i], DRM_FORMAT_NV12))
       pDrmDsp->test_plane = pDrmDsp->plane[i];
   }
-  if (!pDrmDsp->test_plane) return -1;
+  if (!pDrmDsp->test_plane) {
+    fprintf(stderr, "pDrmDsp->test_plane is null\n");
+    return -1;
+  } else {
+    fprintf(stderr, "pDrmDsp->test_plane is no null\n");
+    return 0;
+  }
 }
 
 void deInitDrmDsp() {
   struct drmDsp* pDrmDsp = &gDrmDsp;
-  if (pDrmDsp->bo[0]) free_sp_bo(pDrmDsp->bo[0]);
-  if (pDrmDsp->bo[1]) free_sp_bo(pDrmDsp->bo[1]);
+  if (pDrmDsp->plane) free(pDrmDsp->plane);
+  if (pDrmDsp->bo[0]) {
+    drmModeRmFB(pDrmDsp->dev->fd, pDrmDsp->bo[0]->fb_id);
+    free_sp_bo(pDrmDsp->bo[0]);
+  }
+  if (pDrmDsp->bo[1]) {
+    drmModeRmFB(pDrmDsp->dev->fd, pDrmDsp->bo[1]->fb_id);
+    free_sp_bo(pDrmDsp->bo[1]);
+  }
   destroy_sp_dev(pDrmDsp->dev);
   memset(pDrmDsp, 0, sizeof(struct drmDsp));
 }
@@ -224,26 +237,26 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
   uint32_t handles[4], pitches[4], offsets[4];
 
   if (DRM_FORMAT_NV12 != fmt) {
-    printf("%s just support NV12 to display\n", __func__);
+    fprintf(stderr, "%s just support NV12 to display\n", __func__);
     return -1;
   }
 // create bo
 #if 1
   if (!pDrmDsp->bo[0]) {
-    printf("%s:bo widthxheight:%dx%d\n", __func__, wAlign16, hAlign16);
+    fprintf(stderr, "%s:bo widthxheight:%dx%d\n", __func__, wAlign16, hAlign16);
     pDrmDsp->bo[0] = create_sp_bo(pDrmDsp->dev, wAlign16, hAlign16, 16, 32,
                                   DRM_FORMAT_NV12, 0);
     pDrmDsp->bo[1] = create_sp_bo(pDrmDsp->dev, wAlign16, hAlign16, 16, 32,
                                   DRM_FORMAT_NV12, 0);
     if (!pDrmDsp->bo[0] || !pDrmDsp->bo[1]) {
-      printf("%s:create bo failed ! \n", __func__);
+      fprintf(stderr, "%s:create bo failed ! \n", __func__);
       return -1;
     }
     pDrmDsp->nextbo = pDrmDsp->bo[0];
   }
 
   if (!pDrmDsp->nextbo) {
-    printf("%s:no available bo ! \n", __func__);
+    fprintf(stderr, "%s:no available bo ! \n", __func__);
     return -1;
   }
 
@@ -251,7 +264,7 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
 #else
   bo = create_sp_bo(pDrmDsp->dev, wAlign16, hAlign16, 16, 32, DRM_FORMAT_NV12,
                     0);
-  if (!bo) printf("%s:create bo failed ! \n", __func__);
+  if (!bo) fprintf(stderr, "%s:create bo failed ! \n", __func__);
 #endif
 
   handles[0] = bo->handle;
@@ -266,17 +279,21 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
   else
     arm_camera_yuv420_scale_arm(dmaFd, bo->map_addr, ori_width, ori_height,
                                 width, height);
-  ret = drmModeAddFB2(bo->dev->fd, bo->width, bo->height, bo->format, handles,
-                      pitches, offsets, &bo->fb_id, bo->flags);
-  if (ret) {
-    printf("%s:failed to create fb ret=%d\n", __func__, ret);
-    printf(
-        "fd:%d "
-        ",wxh:%ux%u,format:%u,handles:%u,%u,pictches:%u,%u,offsets:%u,%u,fb_id:"
-        "%u,flags:%u \n",
-        bo->dev->fd, bo->width, bo->height, bo->format, handles[0], handles[1],
-        pitches[0], pitches[1], offsets[0], offsets[1], bo->fb_id, bo->flags);
-    return ret;
+  if (bo->fb_id <= 0) {
+    ret = drmModeAddFB2(bo->dev->fd, bo->width, bo->height, bo->format, handles,
+                        pitches, offsets, &bo->fb_id, bo->flags);
+    if (ret) {
+      fprintf(stderr, "%s:failed to create fb ret=%d\n", __func__, ret);
+      fprintf(stderr,
+          "fd:%d "
+          ",wxh:%ux%u,format:%u,handles:%u,%u,pictches:%u,%u,offsets:%u,%u,fb_id:"
+          "%u,flags:%u \n",
+          bo->dev->fd, bo->width, bo->height, bo->format, handles[0], handles[1],
+          pitches[0], pitches[1], offsets[0], offsets[1], bo->fb_id, bo->flags);
+      return ret;
+    } else {
+      fprintf(stderr, "%s:create fb success fb_id:%u\n", __func__, bo->fb_id);
+    }
   }
 
   ret = drmModeSetPlane(pDrmDsp->dev->fd, pDrmDsp->test_plane->plane->plane_id,
@@ -286,7 +303,7 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
                         // pDrmDsp->test_crtc->crtc->mode.vdisplay,
                         0, 0, width << 16, height << 16);
   if (ret) {
-    printf("failed to set plane to crtc ret=%d\n", ret);
+    fprintf(stderr, "failed to set plane to crtc ret=%d\n", ret);
     return ret;
   }
 // free_sp_bo(bo);
@@ -295,7 +312,7 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
     if (pDrmDsp->test_plane->bo->fb_id) {
       ret = drmModeRmFB(pDrmDsp->dev->fd, pDrmDsp->test_plane->bo->fb_id);
       if (ret)
-        printf("Failed to rmfb ret=%d!\n", ret);
+        fprintf(stderr, "Failed to rmfb ret=%d!\n", ret);
     }
     if (pDrmDsp->test_plane->bo->handle) {
       struct drm_gem_close req = {
@@ -303,7 +320,7 @@ int drmDspFrame(int width, int height, void* dmaFd, int fmt) {
       };
 
       drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
-      printf("%s:close bo success!\n", __func__);
+      fprintf(stderr, "%s:close bo success!\n", __func__);
     }
 
     if (!pDrmDsp->nextbo)
